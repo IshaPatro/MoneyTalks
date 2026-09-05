@@ -43,6 +43,17 @@ class Transaction(BaseModel):
     region: Optional[str] = None
 
 
+class ConfirmedContextRef(BaseModel):
+    """Lightweight view of a `memory.store.ConfirmedContext` row, kept as
+    its own contract so `backend/contracts` doesn't need to import
+    `backend/memory` (which owns the actual SQLite-backed dataclass)."""
+
+    account: str
+    period: str
+    explanation: str
+    entity: Optional[str] = None
+
+
 class NarrativeVerdict(BaseModel):
     """Result of checking a public statement (e.g. an earnings-call quote)
     against the real driver/transaction data for a variance.
