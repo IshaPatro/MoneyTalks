@@ -18,6 +18,9 @@ from backend.agent_engine.narrative_check import verify_narrative_claim
 from backend.finance_engine.engine import FinanceEngine
 from backend.finance_engine.ingestion import month_to_period
 from backend.memory.store import MemoryStore
+from backend.risk_graph.risk_graph_engine import analyze_account_risk
+
+import networkx as nx
 
 # The real, generated dataset (see data/generate_subscription_data.py) --
 # small enough to load directly, no external multi-GB file required.
@@ -266,6 +269,52 @@ def risk_donut(top_share: float, is_risk: bool) -> go.Figure:
     return fig
 
 
+@st.cache_data(show_spinner=False)
+def load_risk_result(path: Path):
+    result = analyze_account_risk(path)
+    return result.accounts, result.risk_amplifier_ranking, result.json_graph_data
+
+
+def risk_network_chart(graph_data: dict) -> go.Figure:
+    """Force-directed layout of the risk graph: risk sources (red) ->
+    financial consequences (amber) -> accounts (blue, sized by MRR)."""
+    graph = nx.node_link_graph(graph_data, edges="links")
+    pos = nx.spring_layout(graph, seed=7, k=0.6)
+
+    edge_x, edge_y = [], []
+    for u, v in graph.edges():
+        edge_x += [pos[u][0], pos[v][0], None]
+        edge_y += [pos[u][1], pos[v][1], None]
+
+    node_x, node_y, node_color, node_size, node_text = [], [], [], [], []
+    for node, data in graph.nodes(data=True):
+        node_x.append(pos[node][0])
+        node_y.append(pos[node][1])
+        kind = data.get("kind")
+        if kind == "risk_source":
+            node_color.append(RED); node_size.append(22)
+        elif kind == "financial_consequence":
+            node_color.append("#F5A623"); node_size.append(18)
+        else:
+            node_color.append(LIGHT_BLUE); node_size.append(10)
+        node_text.append(node)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=edge_x, y=edge_y, mode="lines",
+                              line=dict(color="rgba(255,255,255,.18)", width=1), hoverinfo="none"))
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y, mode="markers", text=node_text, hovertemplate="<b>%{text}</b><extra></extra>",
+        marker=dict(color=node_color, size=node_size, line=dict(color=WHITE, width=1)),
+    ))
+    fig.update_layout(
+        showlegend=False, height=420, margin=dict(l=4, r=4, t=4, b=4),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+    )
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    return fig
+
+
 _CLAIM_WORDS = ("broad-based", "broad based", "everyone", "across the board", "widespread",
                 "true that", "is it true", "flat", "unchanged", "steady")
 
@@ -502,95 +551,219 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-title_col, selector_col = st.columns([5, 1.35])
-with title_col:
-    st.markdown(
-        "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
-        "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
-        f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/subscription_accounts.csv</div></div>",
-        unsafe_allow_html=True,
-    )
-with selector_col:
-    st.selectbox("Reporting period", [period_label], label_visibility="collapsed")
+tab_overview, tab_risk, tab_check = st.tabs(["📊 Overview", "🕸️ Risk Graph", "📞 Investor Call Fact-Check"])
 
-k1, k2, k3, k4, k5, k6 = st.columns(6)
-with k1:
-    st.markdown(metric_card("Total MRR", money(current_total, True), f"<b>{percentage(growth, True)}</b> vs last month", "$", "positive" if growth >= 0 else "risk"), unsafe_allow_html=True)
-with k2:
-    st.markdown(metric_card("MRR ex-whale", money(organic_current, True), f"<b>{percentage(organic_growth, True)}</b> underlying growth", "↘", "positive" if organic_growth >= 0 else "risk"), unsafe_allow_html=True)
-with k3:
-    st.markdown(metric_card("Top 1 exposure", percentage(top_share), f"<b>{money(whale_mrr, True)}</b> from {whale}", "!", "risk" if concentration_risk else "positive"), unsafe_allow_html=True)
-with k4:
-    concentration_label = "High" if top_five_share >= .50 else "Diversified"
-    concentration_state = "risk" if top_five_share >= .50 else "positive"
-    st.markdown(metric_card("Top 5 exposure", percentage(top_five_share), f"<b>{concentration_label}</b> portfolio dependency", "5", concentration_state), unsafe_allow_html=True)
-with k5:
-    st.markdown(metric_card("Gross MRR loss", money(abs(losses), True), f"<b>{churned}</b> full-account churns", "−", "risk" if losses < 0 else "positive"), unsafe_allow_html=True)
-with k6:
-    hhi_label = "Concentrated" if hhi > .18 else "Diversified"
-    st.markdown(metric_card("HHI score", f"{hhi * 10_000:,.0f}", f"<b>{hhi_label}</b> revenue base", "H", "risk" if hhi > .18 else "positive"), unsafe_allow_html=True)
-
-charts_col, agent_col = st.columns([2, 1], gap="medium")
-with charts_col:
-    top_left, top_right = st.columns([1.25, 1])
-    with top_left:
-        with st.container(key="chart_panel"):
-            st.markdown("<div class='chart-heading'><div class='chart-title'>Revenue quality</div><div class='chart-meta'>Total vs ex-whale</div></div>", unsafe_allow_html=True)
-            st.plotly_chart(revenue_quality_chart(monthly), width="stretch", config={"displayModeBar": False})
-    with top_right:
-        with st.container(key="chart_panel_2"):
-            st.markdown("<div class='chart-heading'><div class='chart-title'>Customer concentration</div><div class='chart-meta'>Latest MRR share</div></div>", unsafe_allow_html=True)
-            st.plotly_chart(concentration_chart(current), width="stretch", config={"displayModeBar": False})
-
-    bottom_left, bottom_right = st.columns(2)
-    with bottom_left:
-        with st.container(key="chart_panel_3"):
-            st.markdown("<div class='chart-heading'><div class='chart-title'>MRR movement bridge</div><div class='chart-meta'>Month over month</div></div>", unsafe_allow_html=True)
-            st.plotly_chart(bridge_chart(previous_total, expansion, losses, current_total), width="stretch", config={"displayModeBar": False})
-    with bottom_right:
-        with st.container(key="chart_panel_4"):
-            st.markdown("<div class='chart-heading'><div class='chart-title'>Customer growth map</div><div class='chart-meta'>Size × momentum</div></div>", unsafe_allow_html=True)
-            st.plotly_chart(account_health_chart(current), width="stretch", config={"displayModeBar": False})
-
-with agent_col:
-    with st.container(key="agent_panel"):
+with tab_overview:
+    title_col, selector_col = st.columns([5, 1.35])
+    with title_col:
         st.markdown(
-            "<div class='agent-head'><div><div class='agent-title'>Concentration Risk Agent</div>"
-            "<div class='agent-sub'>The story behind the headline</div></div>"
-            "<div class='agent-badge'>● ONLINE</div></div>", unsafe_allow_html=True,
-        )
-        donut_col, risk_copy_col = st.columns([1, 1.35])
-        with donut_col:
-            st.plotly_chart(risk_donut(top_share, concentration_risk), width="stretch", config={"displayModeBar": False})
-        with risk_copy_col:
-            st.markdown(
-                f"<div class='risk-copy {'risk' if concentration_risk else 'positive'}'><strong>{risk_level}</strong>"
-                f"<span>{html.escape(whale)} controls {top_share:.0%} of recurring revenue. "
-                f"That is {money(whale_mrr, True)} of monthly exposure.</span></div>", unsafe_allow_html=True,
-            )
-        st.markdown(
-            f"<div class='story-step positive'><i>1</i><div><div class='story-label'>Baseline</div>"
-            f"<div class='story-text'>MRR reached <b>{money(current_total, True)}</b>, up <b>{percentage(growth, True)}</b> month over month.</div></div></div>"
-            f"<div class='story-step {story_class}'><i>2</i><div><div class='story-label'>Largest account</div>"
-            f"<div class='story-text'><b>{html.escape(whale)}</b> moved {money(whale_mrr - previous_whale, True, True)} and now represents <b>{top_share:.1%}</b> of MRR.</div></div></div>"
-            f"<div class='story-step risk'><i>3</i><div><div class='story-label'>Hidden losses</div>"
-            f"<div class='story-text'><b>{money(abs(losses), True)} gross negative movement</b> across the portfolio; {churned} full-account churns.</div></div></div>"
-            f"<div class='story-step {story_class}'><i>4</i><div><div class='story-label'>The real story</div>"
-            f"<div class='story-text'><b>{real_story}</b></div></div></div>",
+            "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
+            "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
+            f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/subscription_accounts.csv</div></div>",
             unsafe_allow_html=True,
         )
+    with selector_col:
+        st.selectbox("Reporting period", [period_label], label_visibility="collapsed")
 
-        if "agent_messages" not in st.session_state:
-            st.session_state.agent_messages = [{"role": "agent", "content": "Ask me about the whale, hidden churn, or the next CFO action."}]
-        for message in st.session_state.agent_messages[-2:]:
-            css_class = "message-user" if message["role"] == "user" else "message-agent"
-            st.markdown(f"<div class='{css_class}'>{html.escape(message['content'])}</div>", unsafe_allow_html=True)
-        with st.form("agent_form", clear_on_submit=True):
-            question = st.text_input("Ask the agent", placeholder="Ask what makes growth fragile…", label_visibility="collapsed")
-            submitted = st.form_submit_button("Ask Concentration Agent", use_container_width=True)
-        if submitted and question.strip():
-            st.session_state.agent_messages.append({"role": "user", "content": question.strip()})
-            answer = agent_answer(question, stats, engine, memory, current_period, comparison_period)
-            st.session_state.agent_messages.append({"role": "agent", "content": answer})
-            st.rerun()
-        st.caption("Live portfolio analysis, powered by the WhyLedger backend")
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    with k1:
+        st.markdown(metric_card("Total MRR", money(current_total, True), f"<b>{percentage(growth, True)}</b> vs last month", "$", "positive" if growth >= 0 else "risk"), unsafe_allow_html=True)
+    with k2:
+        st.markdown(metric_card("MRR ex-whale", money(organic_current, True), f"<b>{percentage(organic_growth, True)}</b> underlying growth", "↘", "positive" if organic_growth >= 0 else "risk"), unsafe_allow_html=True)
+    with k3:
+        st.markdown(metric_card("Top 1 exposure", percentage(top_share), f"<b>{money(whale_mrr, True)}</b> from {whale}", "!", "risk" if concentration_risk else "positive"), unsafe_allow_html=True)
+    with k4:
+        concentration_label = "High" if top_five_share >= .50 else "Diversified"
+        concentration_state = "risk" if top_five_share >= .50 else "positive"
+        st.markdown(metric_card("Top 5 exposure", percentage(top_five_share), f"<b>{concentration_label}</b> portfolio dependency", "5", concentration_state), unsafe_allow_html=True)
+    with k5:
+        st.markdown(metric_card("Gross MRR loss", money(abs(losses), True), f"<b>{churned}</b> full-account churns", "−", "risk" if losses < 0 else "positive"), unsafe_allow_html=True)
+    with k6:
+        hhi_label = "Concentrated" if hhi > .18 else "Diversified"
+        st.markdown(metric_card("HHI score", f"{hhi * 10_000:,.0f}", f"<b>{hhi_label}</b> revenue base", "H", "risk" if hhi > .18 else "positive"), unsafe_allow_html=True)
+
+    charts_col, agent_col = st.columns([2, 1], gap="medium")
+    with charts_col:
+        top_left, top_right = st.columns([1.25, 1])
+        with top_left:
+            with st.container(key="chart_panel"):
+                st.markdown("<div class='chart-heading'><div class='chart-title'>Revenue quality</div><div class='chart-meta'>Total vs ex-whale</div></div>", unsafe_allow_html=True)
+                st.plotly_chart(revenue_quality_chart(monthly), width="stretch", config={"displayModeBar": False})
+        with top_right:
+            with st.container(key="chart_panel_2"):
+                st.markdown("<div class='chart-heading'><div class='chart-title'>Customer concentration</div><div class='chart-meta'>Latest MRR share</div></div>", unsafe_allow_html=True)
+                st.plotly_chart(concentration_chart(current), width="stretch", config={"displayModeBar": False})
+
+        bottom_left, bottom_right = st.columns(2)
+        with bottom_left:
+            with st.container(key="chart_panel_3"):
+                st.markdown("<div class='chart-heading'><div class='chart-title'>MRR movement bridge</div><div class='chart-meta'>Month over month</div></div>", unsafe_allow_html=True)
+                st.plotly_chart(bridge_chart(previous_total, expansion, losses, current_total), width="stretch", config={"displayModeBar": False})
+        with bottom_right:
+            with st.container(key="chart_panel_4"):
+                st.markdown("<div class='chart-heading'><div class='chart-title'>Customer growth map</div><div class='chart-meta'>Size × momentum</div></div>", unsafe_allow_html=True)
+                st.plotly_chart(account_health_chart(current), width="stretch", config={"displayModeBar": False})
+
+    with agent_col:
+        with st.container(key="agent_panel"):
+            st.markdown(
+                "<div class='agent-head'><div><div class='agent-title'>Concentration Risk Agent</div>"
+                "<div class='agent-sub'>The story behind the headline</div></div>"
+                "<div class='agent-badge'>● ONLINE</div></div>", unsafe_allow_html=True,
+            )
+            donut_col, risk_copy_col = st.columns([1, 1.35])
+            with donut_col:
+                st.plotly_chart(risk_donut(top_share, concentration_risk), width="stretch", config={"displayModeBar": False})
+            with risk_copy_col:
+                st.markdown(
+                    f"<div class='risk-copy {'risk' if concentration_risk else 'positive'}'><strong>{risk_level}</strong>"
+                    f"<span>{html.escape(whale)} controls {top_share:.0%} of recurring revenue. "
+                    f"That is {money(whale_mrr, True)} of monthly exposure.</span></div>", unsafe_allow_html=True,
+                )
+            st.markdown(
+                f"<div class='story-step positive'><i>1</i><div><div class='story-label'>Baseline</div>"
+                f"<div class='story-text'>MRR reached <b>{money(current_total, True)}</b>, up <b>{percentage(growth, True)}</b> month over month.</div></div></div>"
+                f"<div class='story-step {story_class}'><i>2</i><div><div class='story-label'>Largest account</div>"
+                f"<div class='story-text'><b>{html.escape(whale)}</b> moved {money(whale_mrr - previous_whale, True, True)} and now represents <b>{top_share:.1%}</b> of MRR.</div></div></div>"
+                f"<div class='story-step risk'><i>3</i><div><div class='story-label'>Hidden losses</div>"
+                f"<div class='story-text'><b>{money(abs(losses), True)} gross negative movement</b> across the portfolio; {churned} full-account churns.</div></div></div>"
+                f"<div class='story-step {story_class}'><i>4</i><div><div class='story-label'>The real story</div>"
+                f"<div class='story-text'><b>{real_story}</b></div></div></div>",
+                unsafe_allow_html=True,
+            )
+
+            if "agent_messages" not in st.session_state:
+                st.session_state.agent_messages = [{"role": "agent", "content": "Ask me about the whale, hidden churn, or the next CFO action."}]
+            for message in st.session_state.agent_messages[-2:]:
+                css_class = "message-user" if message["role"] == "user" else "message-agent"
+                st.markdown(f"<div class='{css_class}'>{html.escape(message['content'])}</div>", unsafe_allow_html=True)
+            with st.form("agent_form", clear_on_submit=True):
+                question = st.text_input("Ask the agent", placeholder="Ask what makes growth fragile…", label_visibility="collapsed")
+                submitted = st.form_submit_button("Ask Concentration Agent", use_container_width=True)
+            if submitted and question.strip():
+                st.session_state.agent_messages.append({"role": "user", "content": question.strip()})
+                answer = agent_answer(question, stats, engine, memory, current_period, comparison_period)
+                st.session_state.agent_messages.append({"role": "agent", "content": answer})
+                st.rerun()
+            st.caption("Live portfolio analysis, powered by the WhyLedger backend")
+
+
+
+with tab_risk:
+    st.markdown(
+        "<div class='section-line'><div><div class='eyebrow'>Systemic risk graph</div>"
+        "<div class='section-title'>Which accounts sit downstream of the most operational risk?</div></div>"
+        "<div class='section-sub'>Reliability incidents, support friction, and payment delays -> financial "
+        "consequences -> accounts. Powered by backend/risk_graph (networkx PageRank).</div></div>",
+        unsafe_allow_html=True,
+    )
+    st.write("")
+
+    risk_accounts, amplifier_ranking, graph_data = load_risk_result(DATA_PATH)
+
+    amp_col, net_col = st.columns([1, 1.6], gap="medium")
+    with amp_col:
+        with st.container(key="chart_panel_risk_amp"):
+            st.markdown("<div class='chart-heading'><div class='chart-title'>Risk amplifier ranking</div>"
+                        "<div class='chart-meta'>Weighted downstream $ impact</div></div>", unsafe_allow_html=True)
+            amp_fig = chart_base()
+            amp_fig.add_trace(go.Bar(
+                x=[v for _, v in amplifier_ranking], y=[n for n, _ in amplifier_ranking],
+                orientation="h", marker=dict(color=RED),
+                hovertemplate="<b>%{y}</b><br>$%{x:,.0f}<extra></extra>",
+            ))
+            amp_fig.update_xaxes(tickprefix="$", tickformat="~s")
+            amp_fig.update_layout(height=180, margin=dict(l=8, r=10, t=6, b=20))
+            st.plotly_chart(amp_fig, width="stretch", config={"displayModeBar": False})
+
+            st.markdown("<div class='chart-heading' style='margin-top:.6rem'><div class='chart-title'>Top accounts by Cascade Risk Index</div>"
+                        "<div class='chart-meta'>PageRank</div></div>", unsafe_allow_html=True)
+            top_risk = risk_accounts.head(10)[["account_id", "graph_pagerank_risk_score", "primary_risk_driver_node"]]
+            st.dataframe(
+                top_risk.rename(columns={
+                    "account_id": "Account", "graph_pagerank_risk_score": "Cascade Risk Index",
+                    "primary_risk_driver_node": "Primary driver",
+                }),
+                hide_index=True, width="stretch",
+            )
+    with net_col:
+        with st.container(key="chart_panel_risk_net"):
+            st.markdown("<div class='chart-heading'><div class='chart-title'>Risk flow graph</div>"
+                        "<div class='chart-meta'>Risk source → consequence → account</div></div>", unsafe_allow_html=True)
+            st.plotly_chart(risk_network_chart(graph_data), width="stretch", config={"displayModeBar": False})
+            st.caption("🔴 Operational risk source · 🟠 Financial consequence · 🔵 Account (top 60 shown)")
+
+    st.write("")
+    st.markdown("<div class='chart-heading'><div class='chart-title'>Trace a cascading loss path</div></div>", unsafe_allow_html=True)
+    selected_account = st.selectbox("Pick an account", risk_accounts["account_id"].tolist(), key="risk_account_select")
+    row = risk_accounts[risk_accounts["account_id"] == selected_account].iloc[0]
+    st.markdown(f"**Cascade Risk Index:** {row['graph_pagerank_risk_score']:.4f} &nbsp;|&nbsp; **Primary driver:** {row['primary_risk_driver_node']}")
+    if row["cascading_loss_paths"]:
+        for path in row["cascading_loss_paths"]:
+            st.markdown(f"- `{' → '.join(path['path'])}`  (weight {path['total_weight']:,.2f})")
+    else:
+        st.caption("No traceable operational-risk path to this account.")
+
+
+with tab_check:
+    st.markdown(
+        "<div class='section-line'><div><div class='eyebrow'>Narrative fact-check</div>"
+        "<div class='section-title'>Does the story match the transactions?</div></div>"
+        "<div class='section-sub'>Paste a line from an earnings call, investor update, or exec summary. "
+        "Checked against real driver data -- never the LLM's own judgment (backend/agent_engine/narrative_check.py).</div></div>",
+        unsafe_allow_html=True,
+    )
+    st.write("")
+
+    scope_options = ["Total Portfolio MRR"] + risk_accounts["account_id"].tolist()
+    scope_col, _ = st.columns([1, 2])
+    with scope_col:
+        scope = st.selectbox("Check against", scope_options, key="factcheck_scope")
+
+    st.markdown("**Try one of these, or write your own:**")
+    example_col1, example_col2, example_col3 = st.columns(3)
+    example_claims = [
+        "Growth this month was broad-based across the customer base.",
+        f"{whale} drove the entire increase this month.",
+        "Revenue was flat month over month.",
+    ]
+    if "factcheck_claim" not in st.session_state:
+        st.session_state.factcheck_claim = example_claims[0]
+    for col, claim in zip([example_col1, example_col2, example_col3], example_claims):
+        with col:
+            if st.button(claim, key=f"example_{claim[:12]}", use_container_width=True):
+                st.session_state.factcheck_claim = claim
+
+    claim_text = st.text_area("Claim to check", key="factcheck_claim", height=80)
+    run_check = st.button("🔎 Check this claim", type="primary")
+
+    if run_check and claim_text.strip():
+        if scope == "Total Portfolio MRR":
+            variance = engine.get_portfolio_variance(current_period, comparison_period)
+        else:
+            variance = next(
+                v for v in engine.compare_periods(current_period, comparison_period)
+                if v.account == scope
+            )
+        verdict = verify_narrative_claim(claim_text.strip(), variance, engine)
+
+        badge = {
+            "supported": ("✅ SUPPORTED", GREEN),
+            "contradicted": ("🚨 CONTRADICTED", RED),
+            "partially_supported": ("⚠️ PARTIALLY SUPPORTED", "#F5A623"),
+            "unsupported": ("❌ UNSUPPORTED", "#F5A623"),
+            "unverifiable": ("❓ UNVERIFIABLE", "rgba(255,255,255,.5)"),
+        }.get(verdict.verdict, (verdict.verdict.upper(), WHITE))
+        label, color = badge
+
+        st.markdown(
+            f"<div class='risk-copy' style='margin-top:1rem'><strong style='color:{color}'>{label}</strong>"
+            f"<span>{html.escape(verdict.reasoning)}</span></div>",
+            unsafe_allow_html=True,
+        )
+        with st.expander("Evidence"):
+            st.write("Claimed entities found in the data:", verdict.claimed_entities or "none")
+            st.write("Actual top drivers:", verdict.actual_top_entities)
+            st.write("Match %:", f"{verdict.match_pct:.0%}" if verdict.match_pct is not None else "n/a")
+            st.write("Driver IDs:", verdict.driver_ids)
+            st.write("Transaction IDs:", verdict.transaction_ids)
