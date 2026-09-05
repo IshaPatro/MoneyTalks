@@ -6,6 +6,7 @@ scipy>=1.14
 fastapi>=0.115
 uvicorn[standard]>=0.30
 anthropic>=0.30  # optional: only used if ANTHROPIC_API_KEY is set
+requests>=2.31   # PrismTrace observability client (backend/observability)
 
 # frontend (Streamlit dashboard, app.py)
 streamlit>=1.40,<2

@@ -12,9 +12,11 @@ of the pipeline still works end to end.
 from __future__ import annotations
 
 import os
+import time
 from typing import Optional
 
 from backend.contracts.schemas import Driver, Explanation, Variance
+from backend.observability.prismtrace_client import record_llm_call
 
 
 def _direction(change: float) -> str:
@@ -96,15 +98,29 @@ current numbers above): {historical_note or "none"}
 Write 2-3 sentences: what changed, why (top drivers), and historical context
 if relevant. Be concise and concrete. Do not restate the raw prompt.
 """
+    model = "claude-sonnet-5"
+    messages = [{"role": "user", "content": prompt}]
+    started = time.perf_counter()
     try:
         client = anthropic.Anthropic()
-        resp = client.messages.create(
-            model="claude-sonnet-5",
-            max_tokens=300,
-            messages=[{"role": "user", "content": prompt}],
+        resp = client.messages.create(model=model, max_tokens=300, messages=messages)
+        text = resp.content[0].text.strip()
+        record_llm_call(
+            model=model, input_messages=messages, output_message=text,
+            latency_ms=(time.perf_counter() - started) * 1000,
+            agent_name="whyledger-explain", session_id=variance.variance_id,
+            token_count_input=getattr(resp.usage, "input_tokens", None),
+            token_count_output=getattr(resp.usage, "output_tokens", None),
+            metadata={"account": variance.account},
         )
-        return resp.content[0].text.strip()
-    except Exception:
+        return text
+    except Exception as exc:
+        record_llm_call(
+            model=model, input_messages=messages, output_message="",
+            latency_ms=(time.perf_counter() - started) * 1000,
+            agent_name="whyledger-explain", session_id=variance.variance_id,
+            metadata={"account": variance.account}, error=str(exc),
+        )
         return None
 
 

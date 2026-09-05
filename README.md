@@ -444,6 +444,43 @@ to regenerate it (e.g. after editing the generator), run:
 python3 data/generate_subscription_data.py
 ```
 
+### Optional: LLM observability (PrismTrace)
+
+The two real LLM call sites (`backend/agent_engine/explain.py`,
+`backend/agent_engine/narrative_check.py`) are instrumented with
+[PrismTrace](https://blockconvey.com/prismtrace) -- every real Claude
+call (prompt, response, latency, token counts) is traced so a
+hallucinated number or a silent template fallback shows up in a
+dashboard instead of only in a terminal. It's fully optional: with no
+PrismTrace credentials set, tracing silently no-ops and nothing else
+changes.
+
+To enable it, set three environment variables (never commit these):
+
+```bash
+export PRISMTRACE_HOST=https://prism.blockconvey.com
+export PRISMTRACE_PROJECT_ID=24c5924c-0d47-461d-a3c2-e0ae09c3c866
+export PRISMTRACE_API_KEY=pt-sk-...
+```
+
+Then verify the credentials and that traces are actually arriving:
+
+```bash
+# 1. Handshake -- confirms the API key/project id are valid
+python -m backend.observability.prismtrace_client
+
+# 2. After running the app / demo scripts at least once, confirm live traces
+curl -sS "https://prism.blockconvey.com/api/setup-doctor?project_id=$PRISMTRACE_PROJECT_ID" \
+  -H "X-PRISMtrace-Key: $PRISMTRACE_API_KEY"
+```
+
+Look for `"live_connected": true` in the second response. See
+`backend/observability/prismtrace_client.py` for the instrumentation
+itself -- it posts to PrismTrace's manual ingest endpoint since this
+codebase calls the Anthropic SDK directly rather than through one of
+PrismTrace's built-in framework integrations (LangChain, LangGraph,
+Google ADK, LiteLLM, OpenAI Agents SDK).
+
 ## 4. What's on the page
 
 The app has three tabs:

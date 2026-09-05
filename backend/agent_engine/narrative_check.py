@@ -24,11 +24,13 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from typing import Optional
 
 from backend.contracts.schemas import Driver, NarrativeVerdict, Variance
 from backend.agent_engine.analytics_interface import AnalyticsEngine
 from backend.agent_engine.drivers import select_important_drivers
+from backend.observability.prismtrace_client import record_llm_call
 
 # Share of the actual change that claimed/matched entities must cover to
 # earn each verdict tier. Thresholds are deliberately explicit constants so
@@ -136,15 +138,29 @@ Computed match percentage of the claim's mentioned entities vs. the actual chang
 
 Explain, in 1-2 sentences, why the statement earns this verdict.
 """
+    model = "claude-sonnet-5"
+    messages = [{"role": "user", "content": prompt}]
+    started = time.perf_counter()
     try:
         client = anthropic.Anthropic()
-        resp = client.messages.create(
-            model="claude-sonnet-5",
-            max_tokens=200,
-            messages=[{"role": "user", "content": prompt}],
+        resp = client.messages.create(model=model, max_tokens=200, messages=messages)
+        text = resp.content[0].text.strip()
+        record_llm_call(
+            model=model, input_messages=messages, output_message=text,
+            latency_ms=(time.perf_counter() - started) * 1000,
+            agent_name="whyledger-narrative-check", session_id=variance.variance_id,
+            token_count_input=getattr(resp.usage, "input_tokens", None),
+            token_count_output=getattr(resp.usage, "output_tokens", None),
+            metadata={"account": variance.account, "verdict": verdict},
         )
-        return resp.content[0].text.strip()
-    except Exception:
+        return text
+    except Exception as exc:
+        record_llm_call(
+            model=model, input_messages=messages, output_message="",
+            latency_ms=(time.perf_counter() - started) * 1000,
+            agent_name="whyledger-narrative-check", session_id=variance.variance_id,
+            metadata={"account": variance.account, "verdict": verdict}, error=str(exc),
+        )
         return None
 
 
