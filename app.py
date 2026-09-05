@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import html
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -9,10 +10,18 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-
 ROOT = Path(__file__).resolve().parent
-DATA_PATH = ROOT / "data" / "data.csv"
-OUTPUT_PATH = ROOT / "data" / "output.csv"
+sys.path.insert(0, str(ROOT))
+
+from backend.agent_engine.investigate import investigate_variance
+from backend.agent_engine.narrative_check import verify_narrative_claim
+from backend.finance_engine.engine import FinanceEngine
+from backend.finance_engine.ingestion import month_to_period
+from backend.memory.store import MemoryStore
+
+# The real, generated dataset (see data/generate_subscription_data.py) --
+# small enough to load directly, no external multi-GB file required.
+DATA_PATH = ROOT / "data" / "subscription_accounts.csv"
 LOGO_PATH = ROOT / "assets" / "logo.png"
 
 BLACK = "#000000"
@@ -33,83 +42,48 @@ st.set_page_config(
 
 @st.cache_data(show_spinner=False)
 def load_real_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Stream the 1.2 GB CSV and retain only CFO aggregates and latest accounts."""
-    import pyarrow as pa
-    import pyarrow.csv as pacsv
-
+    """Load the real (small, ~1k row) generated dataset directly -- no
+    external multi-GB file, no chunked streaming needed."""
     columns = [
         "account_id", "month", "company_size", "industry", "contract_type",
         "regime_state", "current_mrr", "previous_mrr", "mrr_change",
         "positive_transaction_amount", "negative_transaction_amount",
         "expansion_amount", "churn_amount", "churn_flag", "timestamp",
     ]
-    reader = pacsv.open_csv(
-        path,
-        read_options=pacsv.ReadOptions(block_size=32 * 1024 * 1024, use_threads=True),
-        convert_options=pacsv.ConvertOptions(
-            include_columns=columns,
-            column_types={
-                "account_id": pa.int64(), "month": pa.int32(),
-                "current_mrr": pa.float64(), "previous_mrr": pa.float64(),
-                "mrr_change": pa.float64(), "positive_transaction_amount": pa.float64(),
-                "negative_transaction_amount": pa.float64(), "expansion_amount": pa.float64(),
-                "churn_amount": pa.float64(), "churn_flag": pa.bool_(),
-            },
-        ),
-    )
+    df = pd.read_csv(path, usecols=columns)
 
-    monthly_parts: list[pd.DataFrame] = []
-    latest_parts: list[pd.DataFrame] = []
-    latest_month = -1
     numeric = [
         "current_mrr", "previous_mrr", "mrr_change", "positive_transaction_amount",
         "negative_transaction_amount", "expansion_amount", "churn_amount",
     ]
-    for batch in reader:
-        chunk = batch.to_pandas()
-        chunk[numeric] = chunk[numeric].fillna(0)
-        chunk["churn_flag"] = chunk["churn_flag"].fillna(False).astype(int)
-        chunk["active_customer"] = chunk["current_mrr"].gt(0).astype(int)
-        grouped = chunk.groupby("month", as_index=False).agg(
-            total_mrr=("current_mrr", "sum"),
-            previous_mrr=("previous_mrr", "sum"),
-            net_change=("mrr_change", "sum"),
-            expansion=("positive_transaction_amount", "sum"),
-            losses=("negative_transaction_amount", "sum"),
-            churn_mrr=("churn_amount", "sum"),
-            churned=("churn_flag", "sum"),
-            active_customers=("active_customer", "sum"),
-            largest_account_mrr=("current_mrr", "max"),
-            timestamp=("timestamp", "max"),
-        )
-        monthly_parts.append(grouped)
+    df[numeric] = df[numeric].fillna(0)
+    df["churn_flag"] = df["churn_flag"].fillna(False).astype(int)
+    df["active_customer"] = df["current_mrr"].gt(0).astype(int)
 
-        batch_max = int(chunk["month"].max())
-        if batch_max > latest_month:
-            latest_month = batch_max
-            latest_parts = []
-        latest_slice = chunk[chunk["month"].eq(latest_month)].copy()
-        if not latest_slice.empty:
-            latest_parts.append(latest_slice)
-
-    monthly = pd.concat(monthly_parts, ignore_index=True)
-    monthly = monthly.groupby("month", as_index=False).agg(
-        total_mrr=("total_mrr", "sum"), previous_mrr=("previous_mrr", "sum"),
-        net_change=("net_change", "sum"), expansion=("expansion", "sum"),
-        losses=("losses", "sum"), churn_mrr=("churn_mrr", "sum"),
-        churned=("churned", "sum"), active_customers=("active_customers", "sum"),
-        largest_account_mrr=("largest_account_mrr", "max"), timestamp=("timestamp", "max"),
+    monthly = df.groupby("month", as_index=False).agg(
+        total_mrr=("current_mrr", "sum"), previous_mrr=("previous_mrr", "sum"),
+        net_change=("mrr_change", "sum"), expansion=("positive_transaction_amount", "sum"),
+        losses=("negative_transaction_amount", "sum"), churn_mrr=("churn_amount", "sum"),
+        churned=("churn_flag", "sum"), active_customers=("active_customer", "sum"),
+        largest_account_mrr=("current_mrr", "max"), timestamp=("timestamp", "max"),
     )
     monthly["period"] = pd.to_datetime(monthly["timestamp"], errors="coerce").dt.to_period("M").dt.to_timestamp()
     monthly["month_label"] = monthly["period"].dt.strftime("%b %Y")
     monthly["underlying_mrr"] = monthly["total_mrr"] - monthly["largest_account_mrr"]
     monthly = monthly.sort_values("month").reset_index(drop=True)
 
-    latest = pd.concat(latest_parts, ignore_index=True)
-    latest = latest[latest["month"].eq(latest_month)].drop_duplicates("account_id", keep="last")
-    latest["customer"] = latest["account_id"].map(lambda value: f"Account {int(value):06d}")
+    latest_month = int(df["month"].max())
+    latest = df[df["month"].eq(latest_month)].drop_duplicates("account_id", keep="last").copy()
+    latest["customer"] = latest["account_id"].astype(str)  # account_id is already "ACC-0001"-style
     latest["mrr"] = latest["current_mrr"].clip(lower=0)
     return monthly, latest
+
+
+@st.cache_resource(show_spinner=False)
+def load_engine() -> tuple[FinanceEngine, MemoryStore]:
+    engine = FinanceEngine.from_csv(DATA_PATH)
+    memory = MemoryStore(ROOT / "backend" / "memory" / "app.db")
+    return engine, memory
 
 
 def image_data_uri(path: Path) -> str:
@@ -200,7 +174,8 @@ def concentration_chart(current: pd.DataFrame) -> go.Figure:
     display.loc[len(display)] = [f"Remaining {remaining_count:,}", rest]
     display = display.sort_values("mrr", ascending=True)
     total = float(current["mrr"].sum())
-    colors = [RED if customer == "Apex Systems" else LIGHT_BLUE for customer in display["customer"]]
+    top_customer = str(ranked.iloc[0]["customer"]) if not ranked.empty else None
+    colors = [RED if customer == top_customer else LIGHT_BLUE for customer in display["customer"]]
     fig = chart_base()
     fig.add_trace(
         go.Bar(
@@ -288,27 +263,67 @@ def risk_donut(top_share: float, is_risk: bool) -> go.Figure:
     return fig
 
 
-def agent_answer(question: str, stats: dict[str, object]) -> str:
+_CLAIM_WORDS = ("broad-based", "broad based", "everyone", "across the board", "widespread",
+                "true that", "is it true", "flat", "unchanged", "steady")
+
+
+def agent_answer(
+    question: str,
+    stats: dict[str, object],
+    engine: FinanceEngine,
+    memory: MemoryStore,
+    current_period: str,
+    comparison_period: str,
+) -> str:
+    """Answers using the real backend -- investigate_variance() (Role 2's
+    explanation engine, LLM-backed if ANTHROPIC_API_KEY is set) and
+    verify_narrative_claim() (the "investor call" fact-checker) -- instead
+    of a fixed keyword-templated string."""
     q = question.lower().strip()
+    portfolio = engine.get_portfolio_variance(current_period, comparison_period)
+
+    if any(word in q for word in _CLAIM_WORDS):
+        verdict = verify_narrative_claim(question, portfolio, engine)
+        icon = {"supported": "✅", "contradicted": "🚨", "partially_supported": "⚠️",
+                "unsupported": "❌", "unverifiable": "❓"}.get(verdict.verdict, "")
+        return f"{icon} **{verdict.verdict.replace('_', ' ').title()}** — {verdict.reasoning}"
+
     if any(word in q for word in ("whale", "concentration", "risk", "fragile")):
-        return (
-            f"{stats['whale']} contributes {stats['top_share']:.0%} of MRR. "
-            f"Losing it would reduce monthly revenue by {money(float(stats['whale_mrr']), True)}."
-        )
+        drivers = engine.breakdown_variance(portfolio.variance_id, dimension="account", top_n=1)
+        if drivers:
+            top_variance = next(
+                v for v in engine.compare_periods(current_period, comparison_period)
+                if v.account == drivers[0].entity
+            )
+            explanation = investigate_variance(top_variance, engine, period=current_period, memory=memory)
+            return explanation.explanation
+        return f"{stats['whale']} contributes {stats['top_share']:.0%} of MRR."
+
     if any(word in q for word in ("churn", "lost", "customer")):
+        churned = [v for v in engine.compare_periods(current_period, comparison_period)
+                   if v.current == 0 and v.previous > 0]
+        if churned:
+            worst = max(churned, key=lambda v: v.previous)
+            explanation = investigate_variance(worst, engine, period=current_period, memory=memory)
+            return explanation.explanation
         return (
             f"Gross negative movement was {money(abs(float(stats['losses'])), True)} across the portfolio. "
             f"The full-account churn count was {stats['churned']}."
         )
+
     if any(word in q for word in ("revenue", "growth", "baseline", "mrr")):
-        return (
-            f"Total MRR is {money(float(stats['current_total']), True)}, "
-            f"{percentage(float(stats['growth']), True)} month over month. "
-            f"Excluding the top customer, the portfolio moved {percentage(float(stats['organic_growth']), True)}."
+        drivers = engine.breakdown_variance(portfolio.variance_id, dimension="account", top_n=3)
+        from backend.agent_engine.explain import generate_explanation
+        explanation = generate_explanation(
+            portfolio, drivers, named_share=1.0,
+            transaction_ids=[], historical_note=None,
         )
+        return explanation.explanation
+
     if any(word in q for word in ("action", "recommend", "do", "next")):
-        return "Protect the top-account renewal, investigate the three SMB churns, and set a Top-1 concentration target below 35%."
-    return "Ask about the whale, hidden churn, revenue quality, or the next CFO action."
+        return "Protect the top-account renewal, investigate the recent full-account churns, and set a Top-1 concentration target below 35%."
+
+    return "Ask about the whale, hidden churn, revenue quality, the next CFO action, or fact-check a claim (e.g. \"was growth broad-based?\")."
 
 
 st.markdown(
@@ -415,25 +430,28 @@ st.markdown(
 )
 
 
-if not OUTPUT_PATH.exists():
-    st.error("The real dataset was not found at data/output.csv.")
+if not DATA_PATH.exists():
+    st.error(f"Dataset not found at {DATA_PATH}. Run: python3 data/generate_subscription_data.py")
     st.stop()
 
 loader = st.empty()
 loader.markdown(
     f"<div class='loader-card'><img src='{image_data_uri(LOGO_PATH)}' alt='WhaleWatch loading'>"
     "<strong>WhaleWatch is scanning your revenue ocean</strong>"
-    "<span>Aggregating 1.15 million records, identifying whales, and measuring hidden churn…</span>"
+    "<span>Aggregating accounts, identifying whales, and measuring hidden churn…</span>"
     "<div class='loader-line'><i></i></div></div>",
     unsafe_allow_html=True,
 )
-monthly, current = load_real_data(OUTPUT_PATH)
+monthly, current = load_real_data(DATA_PATH)
+engine, memory = load_engine()
 loader.empty()
 if monthly.empty or current.empty:
-    st.error("data/output.csv did not contain usable monthly account records.")
+    st.error(f"{DATA_PATH} did not contain usable monthly account records.")
     st.stop()
 
 latest_month = monthly.iloc[-1]
+current_period = month_to_period(int(latest_month["month"]))
+comparison_period = month_to_period(int(monthly.iloc[-2]["month"])) if len(monthly) > 1 else current_period
 current_total = float(latest_month["total_mrr"])
 previous_total = float(latest_month["previous_mrr"])
 growth = current_total / previous_total - 1 if previous_total else 0
@@ -486,7 +504,7 @@ with title_col:
     st.markdown(
         "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
         "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
-        f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/output.csv</div></div>",
+        f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/subscription_accounts.csv</div></div>",
         unsafe_allow_html=True,
     )
 with selector_col:
@@ -569,6 +587,7 @@ with agent_col:
             submitted = st.form_submit_button("Ask Concentration Agent", use_container_width=True)
         if submitted and question.strip():
             st.session_state.agent_messages.append({"role": "user", "content": question.strip()})
-            st.session_state.agent_messages.append({"role": "agent", "content": agent_answer(question, stats)})
+            answer = agent_answer(question, stats, engine, memory, current_period, comparison_period)
+            st.session_state.agent_messages.append({"role": "agent", "content": answer})
             st.rerun()
-        st.caption("Live portfolio analysis from data/output.csv")
+        st.caption("Live portfolio analysis, powered by the WhyLedger backend")
