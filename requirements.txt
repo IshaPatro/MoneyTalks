@@ -3,4 +3,6 @@ pydantic>=2
 pytest>=7
 networkx>=3.5
 scipy>=1.14
+fastapi>=0.115
+uvicorn[standard]>=0.30
 anthropic>=0.30  # optional: only used if ANTHROPIC_API_KEY is set

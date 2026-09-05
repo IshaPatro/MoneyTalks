@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>WhyLedger (rough demo)</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #171d2d; --panel2: #1e2436; --border: #2a3145;
+    --text: #e8ecf4; --muted: #93a0bd; --accent: #6ea8fe; --good: #4fd18b;
+    --bad: #ff6b6b; --warn: #f5c451;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .tag { color: var(--muted); font-size: 13px; }
+  .tabs { display: flex; gap: 4px; margin-left: auto; }
+  .tabs button { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .tabs button.active { background: var(--accent); color: #05101f; border-color: var(--accent); font-weight: 600; }
+  main { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  select, input, button.primary, textarea {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 10px; border-radius: 6px; font-size: 13px;
+  }
+  button.primary { background: var(--accent); color: #05101f; font-weight: 600; cursor: pointer; border: none; }
+  button.secondary { background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  button.secondary:hover, button.primary:hover { filter: brightness(1.1); }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 12px; }
+  .portfolio-headline { font-size: 26px; font-weight: 700; }
+  .portfolio-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px; border-bottom: 1px solid var(--border); }
+  tr.variance-row { cursor: pointer; }
+  tr.variance-row:hover { background: var(--panel2); }
+  .pos { color: var(--good); } .neg { color: var(--bad); }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: var(--panel2); border: 1px solid var(--border); }
+  .hidden { display: none !important; }
+  .explanation-box { background: var(--panel2); border-radius: 8px; padding: 14px; margin: 10px 0; line-height: 1.5; }
+  .evidence-list { font-size: 12px; color: var(--muted); }
+  .feedback-row { display: flex; gap: 8px; margin-top: 10px; }
+  #correctionBox { width: 100%; margin-top: 8px; min-height: 50px; }
+  .verdict-supported { color: var(--good); }
+  .verdict-contradicted { color: var(--bad); }
+  .verdict-partially_supported, .verdict-unsupported { color: var(--warn); }
+  .verdict-unverifiable { color: var(--muted); }
+  .small { font-size: 12px; color: var(--muted); }
+  .graph-node { padding: 4px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
+  .status { font-size: 12px; color: var(--good); margin-left: 8px; }
+  code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>WhyLedger</h1>
+  <span class="tag">rough demo build</span>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="investigate">Investigation</button>
+    <button class="tab-btn" data-tab="risk">Risk Graph</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- OVERVIEW TAB -->
+  <section id="tab-overview">
+    <div class="panel">
+      <h2>1. Upload / Select periods</h2>
+      <div class="row">
+        <div>
+          <label>Current period</label>
+          <select id="currentPeriod"></select>
+        </div>
+        <div>
+          <label>Comparison period</label>
+          <select id="comparisonPeriod"></select>
+        </div>
+        <div>
+          <label>Top N variances</label>
+          <input id="topN" type="number" value="10" min="1" max="70" style="width:70px" />
+        </div>
+        <div style="align-self:flex-end">
+          <button class="primary" id="analyzeBtn">Analyze</button>
+        </div>
+        <span id="analyzeStatus" class="status"></span>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="portfolioPanel">
+      <h2>Portfolio headline</h2>
+      <div class="portfolio-headline" id="portfolioHeadline"></div>
+      <div class="portfolio-sub" id="portfolioSub"></div>
+    </div>
+
+    <div class="panel hidden" id="variancePanel">
+      <h2>2. Top variances (click a row to investigate)</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Account</th><th>Change</th><th>%</th><th>Headline</th></tr>
+        </thead>
+        <tbody id="varianceTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- INVESTIGATION TAB -->
+  <section id="tab-investigate" class="hidden">
+    <div class="panel" id="investigatePanel">
+      <p class="small">Run an analysis on the Overview tab, then click a variance row to see it here.</p>
+    </div>
+  </section>
+
+  <!-- RISK GRAPH TAB -->
+  <section id="tab-risk" class="hidden">
+    <div class="panel">
+      <h2>Systemic Risk Graph</h2>
+      <div class="row"><button class="primary" id="loadRiskBtn">Load risk ranking</button></div>
+    </div>
+    <div class="panel hidden" id="riskAmplifierPanel">
+      <h2>Risk amplifier ranking</h2>
+      <table>
+        <thead><tr><th>Operational risk source</th><th>Total weighted downstream impact</th></tr></thead>
+        <tbody id="amplifierTableBody"></tbody>
+      </table>
+    </div>
+    <div class="panel hidden" id="riskAccountsPanel">
+      <h2>Top accounts by Cascade Risk Index (PageRank)</h2>
+      <table>
+        <thead><tr><th>Account</th><th>Score</th><th>Primary driver</th><th>Cascading path</th></tr></thead>
+        <tbody id="riskTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const state = { runId: null, currentPeriod: null, comparisonPeriod: null };
+
+function fmtMoney(n) {
+  const sign = n < 0 ? "-" : "";
+  return sign + "$" + Math.abs(n).toLocaleString(undefined, {maximumFractionDigits: 0});
+}
+function fmtPct(n) { return (n >= 0 ? "+" : "") + n.toFixed(1) + "%"; }
+
+// ---- tabs ----
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    ["overview", "investigate", "risk"].forEach(t => {
+      document.getElementById("tab-" + t).classList.toggle("hidden", t !== btn.dataset.tab);
+    });
+  });
+});
+
+// ---- load periods ----
+async function loadPeriods() {
+  const res = await fetch("/api/periods");
+  const data = await res.json();
+  const periods = data.periods;
+  const curSel = document.getElementById("currentPeriod");
+  const cmpSel = document.getElementById("comparisonPeriod");
+  periods.forEach(p => {
+    curSel.appendChild(new Option(p, p));
+    cmpSel.appendChild(new Option(p, p));
+  });
+  // default to the flagship demo scenario (a single churn masking as a
+  // portfolio-wide dip) if it's in range, else fall back to the latest pair
+  if (periods.includes("2026-09") && periods.includes("2026-08")) {
+    curSel.value = "2026-09";
+    cmpSel.value = "2026-08";
+  } else {
+    curSel.value = periods[periods.length - 1];
+    cmpSel.value = periods[periods.length - 2];
+  }
+}
+loadPeriods();
+
+// ---- analyze ----
+document.getElementById("analyzeBtn").addEventListener("click", async () => {
+  const current_period = document.getElementById("currentPeriod").value;
+  const comparison_period = document.getElementById("comparisonPeriod").value;
+  const top_n = parseInt(document.getElementById("topN").value, 10);
+  const statusEl = document.getElementById("analyzeStatus");
+  statusEl.textContent = "Running...";
+
+  const res = await fetch("/api/analysis", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({current_period, comparison_period, top_n}),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    statusEl.textContent = "Error: " + err.detail;
+    statusEl.style.color = "var(--bad)";
+    return;
+  }
+  const data = await res.json();
+  state.runId = data.run_id;
+  state.currentPeriod = data.current_period;
+  state.comparisonPeriod = data.comparison_period;
+  statusEl.style.color = "var(--good)";
+  statusEl.textContent = "Done.";
+
+  const p = data.portfolio;
+  document.getElementById("portfolioPanel").classList.remove("hidden");
+  document.getElementById("portfolioHeadline").innerHTML =
+    `Total Portfolio MRR: ${fmtMoney(p.previous)} &rarr; ${fmtMoney(p.current)} `
+    + `<span class="${p.change >= 0 ? 'pos' : 'neg'}">(${fmtMoney(p.change)}, ${fmtPct(p.change_pct)})</span>`;
+  document.getElementById("portfolioSub").textContent =
+    `${comparison_period} vs ${current_period}`;
+
+  const tbody = document.getElementById("varianceTableBody");
+  tbody.innerHTML = "";
+  data.variances.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.className = "variance-row";
+    tr.innerHTML = `
+      <td>${v.rank}</td>
+      <td>${v.account}</td>
+      <td class="${v.change >= 0 ? 'pos' : 'neg'}">${fmtMoney(v.change)}</td>
+      <td class="${v.change >= 0 ? 'pos' : 'neg'}">${fmtPct(v.change_pct)}</td>
+      <td>${v.headline}</td>`;
+    tr.addEventListener("click", () => openInvestigation(v.variance_id));
+    tbody.appendChild(tr);
+  });
+  document.getElementById("variancePanel").classList.remove("hidden");
+});
+
+// ---- investigation ----
+async function openInvestigation(variance_id) {
+  document.querySelector('.tab-btn[data-tab="investigate"]').click();
+  const panel = document.getElementById("investigatePanel");
+  panel.innerHTML = "<p class='small'>Loading...</p>";
+
+  const res = await fetch(`/api/analysis/${state.runId}/variances/${variance_id}`);
+  const card = await res.json();
+
+  const driverRows = [card.primary_driver, card.secondary_driver, ...card.other_drivers]
+    .filter(Boolean)
+    .map(d => `<tr><td>${d.entity}</td><td>${d.dimension}</td>
+                <td class="${d.change >= 0 ? 'pos' : 'neg'}">${fmtMoney(d.change)}</td>
+                <td>${d.share_pct.toFixed(1)}%</td></tr>`).join("");
+
+  const txnRows = card.top_transactions.map(t =>
+    `<tr><td>${t.transaction_id}</td><td>${t.date}</td>
+      <td class="${t.amount >= 0 ? 'pos' : 'neg'}">${fmtMoney(t.amount)}</td>
+      <td>${t.description || ""}</td></tr>`).join("");
+
+  const historyRows = card.historical_trend.map(h =>
+    `<tr><td>${h.period}</td><td class="${h.change >= 0 ? 'pos' : 'neg'}">${fmtMoney(h.change)}</td>
+      <td>${fmtPct(h.change_pct)}</td></tr>`).join("");
+
+  panel.innerHTML = `
+    <h2>${card.account} &mdash; ${card.headline}</h2>
+    <div class="explanation-box">${card.explanation}</div>
+    <div class="evidence-list">Evidence: ${card.evidence_summary}</div>
+    ${card.confirmed_context ? `<div class="small" style="margin-top:8px">📌 Confirmed context on file (${card.confirmed_context.period}): "${card.confirmed_context.explanation}"</div>` : ""}
+
+    <h2 style="margin-top:20px">Drivers</h2>
+    <table><thead><tr><th>Entity</th><th>Dimension</th><th>Change</th><th>Share</th></tr></thead>
+      <tbody>${driverRows || "<tr><td colspan=4 class='small'>No driver breakdown.</td></tr>"}</tbody></table>
+
+    <h2 style="margin-top:20px">Supporting transactions</h2>
+    <table><thead><tr><th>ID</th><th>Date</th><th>Amount</th><th>Reason</th></tr></thead>
+      <tbody>${txnRows || "<tr><td colspan=4 class='small'>No transactions.</td></tr>"}</tbody></table>
+
+    <h2 style="margin-top:20px">Historical trend</h2>
+    <table><thead><tr><th>Period</th><th>Change</th><th>%</th></tr></thead>
+      <tbody>${historyRows}</tbody></table>
+    ${card.change_vs_recent_avg_label ? `<div class="small" style="margin-top:6px">${card.change_vs_recent_avg_label}</div>` : ""}
+
+    <h2 style="margin-top:20px">Feedback</h2>
+    <div class="feedback-row">
+      <button class="secondary" id="confirmBtn">✅ Yes, correct</button>
+      <button class="secondary" id="correctBtn">✏️ Correct this</button>
+    </div>
+    <textarea id="correctionBox" class="hidden" placeholder="What's the real explanation?"></textarea>
+    <div class="feedback-row hidden" id="submitCorrectionRow">
+      <button class="primary" id="submitCorrectionBtn">Save correction</button>
+    </div>
+    <div id="feedbackStatus" class="status"></div>
+
+    <h2 style="margin-top:20px">Narrative fact-check</h2>
+    <div class="row">
+      <input id="claimInput" placeholder="e.g. Growth was broad-based across the customer base" style="flex:1;min-width:320px" />
+      <button class="primary" id="checkClaimBtn">Check claim</button>
+    </div>
+    <div id="claimResult" style="margin-top:10px"></div>
+  `;
+
+  document.getElementById("confirmBtn").addEventListener("click", async () => {
+    await submitFeedback(variance_id, true, null);
+  });
+  document.getElementById("correctBtn").addEventListener("click", () => {
+    document.getElementById("correctionBox").classList.remove("hidden");
+    document.getElementById("submitCorrectionRow").classList.remove("hidden");
+  });
+  document.getElementById("submitCorrectionBtn").addEventListener("click", async () => {
+    const text = document.getElementById("correctionBox").value.trim();
+    if (!text) return;
+    await submitFeedback(variance_id, false, text);
+  });
+  document.getElementById("checkClaimBtn").addEventListener("click", async () => {
+    const claim = document.getElementById("claimInput").value.trim();
+    if (!claim) return;
+    const res = await fetch("/api/narrative-check", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({run_id: state.runId, variance_id, claim}),
+    });
+    const verdict = await res.json();
+    document.getElementById("claimResult").innerHTML = `
+      <div class="verdict-${verdict.verdict}"><strong>${verdict.verdict.toUpperCase().replace("_"," ")}</strong></div>
+      <div class="small" style="margin-top:4px">${verdict.reasoning}</div>
+    `;
+  });
+}
+
+async function submitFeedback(variance_id, confirmed, corrected_explanation) {
+  const res = await fetch("/api/feedback", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({run_id: state.runId, variance_id, confirmed, corrected_explanation}),
+  });
+  const data = await res.json();
+  document.getElementById("feedbackStatus").textContent =
+    `Saved to memory: "${data.explanation}" (${data.account}, ${data.period})`;
+}
+
+// ---- risk graph ----
+document.getElementById("loadRiskBtn").addEventListener("click", async () => {
+  const res = await fetch("/api/risk-graph?top_n=15");
+  const data = await res.json();
+
+  const ampBody = document.getElementById("amplifierTableBody");
+  ampBody.innerHTML = data.risk_amplifier_ranking.map(([node, val]) =>
+    `<tr><td>${node}</td><td>${fmtMoney(val)}</td></tr>`).join("");
+  document.getElementById("riskAmplifierPanel").classList.remove("hidden");
+
+  const riskBody = document.getElementById("riskTableBody");
+  riskBody.innerHTML = data.accounts.map(a => {
+    const paths = (a.cascading_loss_paths || []).map(p => p.path.join(" &rarr; ")).join("<br/>");
+    return `<tr><td>${a.account_id}</td><td>${a.graph_pagerank_risk_score.toFixed(4)}</td>
+      <td>${a.primary_risk_driver_node || ""}</td><td class="small">${paths}</td></tr>`;
+  }).join("");
+  document.getElementById("riskAccountsPanel").classList.remove("hidden");
+});
+</script>
+
+</body>
+</html>

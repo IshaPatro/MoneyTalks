@@ -5,9 +5,11 @@ Run directly:
 
     python3 -m backend.finance_engine.demo_pipeline
 
-Walks through README section 22's Integration Test using the seeded demo
-scenarios: a whale expansion masking portfolio-wide fragility, an SLA
-credit one-off, and multi-run memory.
+Walks through README section 22's Integration Test using the flagship
+scenario in this dataset: portfolio MRR looks like it's down slightly one
+month, and drilling in reveals the entire decline is one customer's churn
+-- not broad market softness. Also demonstrates multi-run memory and the
+narrative fact-check catching an overstated "broad-based" claim.
 """
 
 from __future__ import annotations
@@ -21,6 +23,10 @@ from backend.memory.store import MemoryStore
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_CSV = REPO_ROOT / "data" / "subscription_accounts.csv"
+
+CURRENT_PERIOD = "2026-09"
+COMPARISON_PERIOD = "2026-08"
+NEXT_PERIOD = "2026-10"
 
 
 def _line(char: str = "-", n: int = 72) -> None:
@@ -38,9 +44,9 @@ def main() -> None:
     print(f"Available breakdown dimensions: {info['available_dimensions']}")
     print()
 
-    print("2. PORTFOLIO HEADLINE: 2025-09 -> 2025-10")
+    print(f"2. PORTFOLIO HEADLINE: {COMPARISON_PERIOD} -> {CURRENT_PERIOD}")
     _line()
-    portfolio = engine.get_portfolio_variance("2025-10", "2025-09")
+    portfolio = engine.get_portfolio_variance(CURRENT_PERIOD, COMPARISON_PERIOD)
     print(f"Total Portfolio MRR: {portfolio.previous:,.0f} -> {portfolio.current:,.0f}  "
           f"({portfolio.change:+,.0f}, {portfolio.change_pct:+.1f}%)")
     print()
@@ -50,51 +56,54 @@ def main() -> None:
     account_drivers = engine.breakdown_variance(portfolio.variance_id, dimension="account", top_n=5)
     for d in account_drivers:
         print(f"  {d.entity:<12} {d.change:>+12,.0f}")
-    whale_share = abs(account_drivers[0].change) / abs(portfolio.change) * 100
-    print(f"\n  -> the #1 account alone is {whale_share:.0f}% of the net portfolio change.")
+    top_driver = account_drivers[0]
+    top_share = abs(top_driver.change) / abs(portfolio.change) * 100
+    print(f"\n  -> {top_driver.entity} alone is {top_share:.0f}% of the net portfolio change.")
     print()
 
-    print("4. AND BY SEGMENT")
+    print("4. AND BY INDUSTRY")
     _line()
-    for d in engine.breakdown_variance(portfolio.variance_id, dimension="company_size"):
-        print(f"  {d.entity:<12} {d.change:>+12,.0f}")
+    for d in engine.breakdown_variance(portfolio.variance_id, dimension="industry", top_n=5):
+        print(f"  {d.entity:<15} {d.change:>+12,.0f}")
     print()
 
-    whale_id = account_drivers[0].entity
-    variances = {v.account: v for v in engine.compare_periods("2025-10", "2025-09")}
-    whale = variances[whale_id]
+    top_account_id = top_driver.entity
+    variances = {v.account: v for v in engine.compare_periods(CURRENT_PERIOD, COMPARISON_PERIOD)}
+    top_variance = variances[top_account_id]
 
-    print(f"5. INVESTIGATE THE TOP ACCOUNT: {whale_id}")
+    print(f"5. INVESTIGATE THE TOP ACCOUNT: {top_account_id}")
     _line()
-    explanation = investigate_variance(whale, engine, period="2025-10", memory=memory)
+    explanation = investigate_variance(top_variance, engine, period=CURRENT_PERIOD, memory=memory)
     print(explanation.headline)
     print(explanation.explanation)
     print(f"Evidence: {len(explanation.driver_ids)} driver(s), {len(explanation.transaction_ids)} transaction(s)")
     print()
 
-    print("6. CONFIRM + STORE MEMORY")
+    print("6/7. MULTI-RUN MEMORY: a recurring pattern, confirmed once, recognized again")
     _line()
+    # ACC-0019 has a genuine recurring pattern -- a small contraction every
+    # 3 months (contract renewal cycle) -- unlike the one-time churn above,
+    # which is exactly what memory is for: confirm the explanation once,
+    # then recognize the SAME pattern automatically next time it recurs.
+    recurring_account = "ACC-0019"
     memory.save_confirmed_context(
-        account=whale_id, period="2025-10",
-        explanation="Large one-time plan upgrade, not expected to recur every month.",
+        account=recurring_account, period="2026-05",
+        explanation="Quarterly contract renewal renegotiation -- recurring, not a red flag.",
     )
-    print("Saved.")
-    print()
+    print(f"Run 1 ({recurring_account}, 2026-05): confirmed as a recurring renewal pattern.")
 
-    print("7. ANALYZE NEXT PERIOD, REUSE MEMORY")
-    _line()
-    next_variances = {v.account: v for v in engine.compare_periods("2025-11", "2025-10")}
-    next_whale = next_variances.get(whale_id)
-    if next_whale:
-        next_explanation = investigate_variance(next_whale, engine, period="2025-11", memory=memory)
-        print(next_explanation.headline)
-        print(next_explanation.explanation)
-        print(f"Historical context retrieved: {next_explanation.historical_context}")
+    next_variances = {v.account: v for v in engine.compare_periods("2026-08", "2026-07")}
+    recurring_variance = next_variances.get(recurring_account)
+    if recurring_variance:
+        recurring_explanation = investigate_variance(recurring_variance, engine, period="2026-08", memory=memory)
+        print(f"\nRun 2 ({recurring_account}, 2026-08): {recurring_explanation.headline}")
+        print(recurring_explanation.explanation)
+        print(f"Historical context retrieved: {recurring_explanation.historical_context}")
     print()
 
     print("8. OPTIONAL: NARRATIVE FACT-CHECK ON THE PORTFOLIO HEADLINE")
     _line()
-    claim = "Portfolio MRR growth this quarter was broad-based across the customer base."
+    claim = "Revenue was down this month due to broad-based softness across the customer base."
     verdict = verify_narrative_claim(claim, portfolio, engine)
     print(f'Claim: "{claim}"')
     print(f"Verdict: {verdict.verdict.upper()}")
