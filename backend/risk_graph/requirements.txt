@@ -1,3 +1,0 @@
-networkx>=3.5
-scipy>=1.14  # required by nx.pagerank's scipy backend
-pandas>=2
