@@ -593,7 +593,6 @@ st.markdown(
 
 st.markdown(
     "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
-    "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
     f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/output.csv</div></div>",
     unsafe_allow_html=True,
 )
