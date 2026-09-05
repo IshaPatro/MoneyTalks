@@ -19,11 +19,12 @@ satisfies `AnalyticsEngine` into `investigate_variance()`.
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from backend.contracts.schemas import Driver, Transaction, Variance
 
 
+@runtime_checkable
 class AnalyticsEngine(Protocol):
     def breakdown_variance(self, variance_id: str) -> list[Driver]:
         """Return the driver breakdown (by whatever dimension is available)
