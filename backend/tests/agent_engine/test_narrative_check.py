@@ -39,13 +39,42 @@ def test_unverifiable_claim_names_no_known_entity(monkeypatch):
     variance = MOCK_VARIANCES["VAR_001"]
 
     verdict = verify_narrative_claim(
-        "Revenue growth reflects broad-based momentum across the business.",
+        "Revenue growth reflects strong momentum across the business.",
         variance, analytics,
     )
 
     assert verdict.verdict == "unverifiable"
     assert verdict.claimed_entities == []
     assert verdict.match_pct is None
+
+
+def test_broad_based_claim_checked_via_concentration_even_with_no_named_entity(monkeypatch):
+    """'broad-based' is a checkable claim on its own: does any single
+    entity actually dominate the change? This is the concentration-risk
+    check -- see backend/agent_engine/narrative_check.py."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    analytics = MockAnalyticsEngine()
+    variance = MOCK_VARIANCES["VAR_001"]  # largest driver ("Other") is 50% of the change
+
+    verdict = verify_narrative_claim(
+        "Revenue growth was broad-based across the customer base.", variance, analytics,
+    )
+
+    assert verdict.claimed_entities == []  # claim named nobody
+    assert verdict.verdict == "supported"  # no single entity exceeds the concentration threshold
+
+
+def test_broad_based_claim_contradicted_when_one_entity_dominates(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    analytics = MockAnalyticsEngine()
+    variance = MOCK_VARIANCES["VAR_002"]  # Legal: single vendor is 100% of the change
+
+    verdict = verify_narrative_claim(
+        "The expense increase was broad-based across many vendors.", variance, analytics,
+    )
+
+    assert verdict.verdict == "contradicted"
+    assert "Cravath & Co" in verdict.matched_entities
 
 
 def test_contradicted_claim_wrong_direction(monkeypatch):

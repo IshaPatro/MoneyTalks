@@ -1,29 +1,26 @@
-"""End-to-end demo of the full pipeline against the REAL Northstar AI
-dataset (data/monthly_summary.csv, data/transactions.csv) -- not mocks.
+"""End-to-end demo of the full pipeline against the real synthetic
+subscription dataset (data/subscription_accounts.csv).
 
 Run directly:
 
     python3 -m backend.finance_engine.demo_pipeline
 
-Walks through exactly the flow in README section 22 (Integration Test):
-upload -> compare periods -> rank variances -> drill into the top one ->
-show drivers/transactions -> generate an explanation -> confirm it into
-memory -> analyze the next period -> reuse the confirmed context ->
-run the optional narrative fact-check.
+Walks through README section 22's Integration Test using the seeded demo
+scenarios: a whale expansion masking portfolio-wide fragility, an SLA
+credit one-off, and multi-run memory.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from backend.finance_engine.engine import FinanceEngine
+from backend.finance_engine.engine import FinanceEngine, PORTFOLIO_ACCOUNT_NAME
 from backend.agent_engine.investigate import investigate_variance
 from backend.agent_engine.narrative_check import verify_narrative_claim
 from backend.memory.store import MemoryStore
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SUMMARY_CSV = REPO_ROOT / "data" / "monthly_summary.csv"
-TRANSACTIONS_CSV = REPO_ROOT / "data" / "transactions.csv"
+DATA_CSV = REPO_ROOT / "data" / "subscription_accounts.csv"
 
 
 def _line(char: str = "-", n: int = 72) -> None:
@@ -31,62 +28,74 @@ def _line(char: str = "-", n: int = 72) -> None:
 
 
 def main() -> None:
-    engine = FinanceEngine.from_csv(SUMMARY_CSV, TRANSACTIONS_CSV)
+    engine = FinanceEngine.from_csv(DATA_CSV)
     memory = MemoryStore(REPO_ROOT / "backend" / "memory" / "demo_pipeline.db")
 
     info = engine.load_dataset_info()
     print("1. UPLOAD")
     _line()
-    print(f"Loaded {info['transaction_count']:,} transactions across {len(info['periods'])} periods")
-    print(f"Available dimensions: {info['available_dimensions']}")
+    print(f"Loaded {info['account_count']} customer accounts, {info['transaction_count']} transactions")
+    print(f"Available breakdown dimensions: {info['available_dimensions']}")
     print()
 
-    print("2. COMPARE PERIODS: 2025-08 -> 2025-09")
+    print("2. PORTFOLIO HEADLINE: 2025-09 -> 2025-10")
     _line()
-    ranked = engine.rank_variances("2025-09", "2025-08", top_n=5)
-    for i, v in enumerate(ranked, 1):
-        print(f"{i}. {v.account:<24} {v.change:>+12,.0f}   {v.change_pct:>+7.1f}%")
+    portfolio = engine.get_portfolio_variance("2025-10", "2025-09")
+    print(f"Total Portfolio MRR: {portfolio.previous:,.0f} -> {portfolio.current:,.0f}  "
+          f"({portfolio.change:+,.0f}, {portfolio.change_pct:+.1f}%)")
     print()
 
-    top = ranked[0]
-    print(f"3. INVESTIGATE TOP VARIANCE: {top.account}")
+    print("3. WHO ACTUALLY DROVE IT: breakdown by account")
     _line()
-    drivers = engine.breakdown_variance(top.variance_id, dimension="customer")
-    for d in drivers:
-        print(f"  {d.entity:<24} {d.change:>+12,.0f}")
+    account_drivers = engine.breakdown_variance(portfolio.variance_id, dimension="account", top_n=5)
+    for d in account_drivers:
+        print(f"  {d.entity:<12} {d.change:>+12,.0f}")
+    whale_share = abs(account_drivers[0].change) / abs(portfolio.change) * 100
+    print(f"\n  -> the #1 account alone is {whale_share:.0f}% of the net portfolio change.")
     print()
 
-    explanation = investigate_variance(top, engine, period="2025-09", memory=memory)
-    print("4. AI EXPLANATION")
+    print("4. AND BY SEGMENT")
     _line()
+    for d in engine.breakdown_variance(portfolio.variance_id, dimension="company_size"):
+        print(f"  {d.entity:<12} {d.change:>+12,.0f}")
+    print()
+
+    whale_id = account_drivers[0].entity
+    variances = {v.account: v for v in engine.compare_periods("2025-10", "2025-09")}
+    whale = variances[whale_id]
+
+    print(f"5. INVESTIGATE THE TOP ACCOUNT: {whale_id}")
+    _line()
+    explanation = investigate_variance(whale, engine, period="2025-10", memory=memory)
     print(explanation.headline)
     print(explanation.explanation)
-    print(f"Evidence: {len(explanation.driver_ids)} drivers, {len(explanation.transaction_ids)} transactions")
+    print(f"Evidence: {len(explanation.driver_ids)} driver(s), {len(explanation.transaction_ids)} transaction(s)")
     print()
 
-    print("5. CONFIRM + STORE MEMORY (simulating user clicking 'Yes, correct')")
+    print("6. CONFIRM + STORE MEMORY")
     _line()
     memory.save_confirmed_context(
-        account=top.account, period="2025-09",
-        explanation="Broad-based growth across many mid-market and SMB accounts, not one whale customer.",
+        account=whale_id, period="2025-10",
+        explanation="Large one-time plan upgrade, not expected to recur every month.",
     )
     print("Saved.")
     print()
 
-    print("6. ANALYZE NEXT PERIOD: 2025-09 -> 2025-10, REUSE MEMORY")
+    print("7. ANALYZE NEXT PERIOD, REUSE MEMORY")
     _line()
-    next_variances = {v.account: v for v in engine.compare_periods("2025-10", "2025-09")}
-    next_top = next_variances[top.account]
-    next_explanation = investigate_variance(next_top, engine, period="2025-10", memory=memory)
-    print(next_explanation.headline)
-    print(next_explanation.explanation)
-    print(f"Historical context retrieved: {next_explanation.historical_context}")
+    next_variances = {v.account: v for v in engine.compare_periods("2025-11", "2025-10")}
+    next_whale = next_variances.get(whale_id)
+    if next_whale:
+        next_explanation = investigate_variance(next_whale, engine, period="2025-11", memory=memory)
+        print(next_explanation.headline)
+        print(next_explanation.explanation)
+        print(f"Historical context retrieved: {next_explanation.historical_context}")
     print()
 
-    print("7. OPTIONAL: NARRATIVE FACT-CHECK")
+    print("8. OPTIONAL: NARRATIVE FACT-CHECK ON THE PORTFOLIO HEADLINE")
     _line()
-    claim = f"Growth was driven by a single major new enterprise customer this quarter."
-    verdict = verify_narrative_claim(claim, top, engine)
+    claim = "Portfolio MRR growth this quarter was broad-based across the customer base."
+    verdict = verify_narrative_claim(claim, portfolio, engine)
     print(f'Claim: "{claim}"')
     print(f"Verdict: {verdict.verdict.upper()}")
     print(f"Why: {verdict.reasoning}")

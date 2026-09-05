@@ -1,768 +1,387 @@
 [
   {
-    "variance_id": "VAR_SUBSCRIPTION_REVENUE_2025_08_2025_09",
-    "account": "Subscription Revenue",
+    "variance_id": "VAR_ACC_0001_2025_09_2025_10",
+    "account": "ACC-0001",
     "rank": 1,
     "is_material": true,
-    "previous": 1586335.37,
-    "current": 2025848.9,
-    "change": 439513.5299999998,
-    "change_pct": 27.706217632908213,
+    "previous": 45436.72,
+    "current": 77072.72,
+    "change": 31636.0,
+    "change_pct": 69.62650473009495,
     "direction": "increase",
     "primary_driver": {
-      "driver_id": "DRV_SUBSCRIPTION_REVENUE_CUSTOMER_OTHER_2025_09",
-      "dimension": "customer",
-      "entity": "Other",
-      "change": 294219.43000000005,
-      "share_pct": 66.942064331899
-    },
-    "secondary_driver": {
-      "driver_id": "DRV_SUBSCRIPTION_REVENUE_CUSTOMER_DRAYTON_GROUP_GMBH_2025_09",
-      "dimension": "customer",
-      "entity": "Drayton Group GmbH",
-      "change": 41355.36,
-      "share_pct": 9.40934855862117
-    },
-    "other_drivers": [
-      {
-        "driver_id": "DRV_SUBSCRIPTION_REVENUE_CUSTOMER_CARDINAL_HEALTH_GMBH_2025_09",
-        "dimension": "customer",
-        "entity": "Cardinal Health GmbH",
-        "change": 40812.39,
-        "share_pct": 9.285809699646794
-      },
-      {
-        "driver_id": "DRV_SUBSCRIPTION_REVENUE_CUSTOMER_STANTON_INDUSTRIES_INC_2025_09",
-        "dimension": "customer",
-        "entity": "Stanton Industries Inc",
-        "change": 39787.77,
-        "share_pct": 9.05268377062249
-      },
-      {
-        "driver_id": "DRV_SUBSCRIPTION_REVENUE_CUSTOMER_LUMEN_NETWORKS_GMBH_2025_09",
-        "dimension": "customer",
-        "entity": "Lumen Networks GmbH",
-        "change": 23338.579999999998,
-        "share_pct": 5.310093639210608
-      }
-    ],
-    "driver_summary": "Other +294,219.4; Drayton Group GmbH +41,355.4; Cardinal Health GmbH +40,812.4; Stanton Industries Inc +39,787.8; Lumen Networks GmbH +23,338.6",
-    "top_transactions": [
-      {
-        "transaction_id": "T0025242",
-        "date": "2025-09-25",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 14949.82,
-        "description": "Core Platform \u2014 Aug 2025",
-        "customer": "Drayton Group GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025826",
-        "date": "2025-09-30",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 14892.91,
-        "description": "Core Platform \u2014 Sep 2025",
-        "customer": "Drayton Group GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025827",
-        "date": "2025-09-30",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 3771.14,
-        "description": "Analytics Add-on \u2014 Sep 2025",
-        "customer": "Drayton Group GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025244",
-        "date": "2025-09-25",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 2988.44,
-        "description": "API Gateway \u2014 Aug 2025",
-        "customer": "Drayton Group GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025243",
-        "date": "2025-09-25",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 2580.23,
-        "description": "Analytics Add-on \u2014 Aug 2025",
-        "customer": "Drayton Group GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025828",
-        "date": "2025-09-30",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 2172.82,
-        "description": "API Gateway \u2014 Sep 2025",
-        "customer": "Drayton Group GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025811",
-        "date": "2025-09-26",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 22225.3,
-        "description": "Core Platform \u2014 Sep 2025",
-        "customer": "Cardinal Health GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "T0025228",
-        "date": "2025-09-30",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 18587.09,
-        "description": "Core Platform \u2014 Aug 2025",
-        "customer": "Cardinal Health GmbH",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "T0026069",
-        "date": "2025-09-26",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 16572.13,
-        "description": "Core Platform \u2014 Sep 2025",
-        "customer": "Stanton Industries Inc",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      },
-      {
-        "transaction_id": "T0025466",
-        "date": "2025-09-24",
-        "period": "2025-09",
-        "account": "Subscription Revenue",
-        "amount": 16456.37,
-        "description": "Core Platform \u2014 Aug 2025",
-        "customer": "Stanton Industries Inc",
-        "vendor": null,
-        "product": null,
-        "department": null,
-        "region": "EMEA"
-      }
-    ],
-    "headline": "Subscription Revenue increased 27.7%",
-    "explanation": "Subscription Revenue increased $439,514, or 27.7%. Other was the largest contributor, accounting for approximately 67% of the change.",
-    "evidence_summary": "1 driver(s), 12 supporting transaction(s)",
-    "driver_ids": [
-      "DRV_SUBSCRIPTION_REVENUE_CUSTOMER_OTHER_2025_09"
-    ],
-    "transaction_ids": [
-      "T0025242",
-      "T0025826",
-      "T0025827",
-      "T0025244",
-      "T0025243",
-      "T0025828",
-      "T0025811",
-      "T0025228",
-      "T0026069",
-      "T0025466",
-      "T0026070",
-      "T0025467"
-    ],
-    "historical_trend": [
-      {
-        "period": "2025-07",
-        "change": 71938.22999999998,
-        "change_pct": 4.4077970124853945
-      },
-      {
-        "period": "2025-08",
-        "change": -117670.5299999998,
-        "change_pct": -6.905523625240957
-      },
-      {
-        "period": "2025-09",
-        "change": 439513.5299999998,
-        "change_pct": 27.706217632908213
-      },
-      {
-        "period": "2025-10",
-        "change": -149943.90999999992,
-        "change_pct": -7.401534734401954
-      },
-      {
-        "period": "2025-11",
-        "change": 53526.51000000001,
-        "change_pct": 2.853369988636792
-      },
-      {
-        "period": "2025-12",
-        "change": 15388.820000000065,
-        "change_pct": 0.7975831222823958
-      }
-    ],
-    "change_vs_recent_avg_label": "2.8x the recent average monthly move",
-    "confirmed_context": null
-  },
-  {
-    "variance_id": "VAR_PAYROLL_2025_08_2025_09",
-    "account": "Payroll",
-    "rank": 2,
-    "is_material": true,
-    "previous": 753523.2,
-    "current": 505149.87,
-    "change": -248373.32999999996,
-    "change_pct": -32.961603571064565,
-    "direction": "decrease",
-    "primary_driver": {
-      "driver_id": "DRV_PAYROLL_VENDOR_GUSTO_PAYROLL_2025_09",
-      "dimension": "vendor",
-      "entity": "Gusto Payroll",
-      "change": -248373.32999999996,
+      "driver_id": "DRV_ACC_0001_EXPANSION_AMOUNT_2025_10",
+      "dimension": "billing_category",
+      "entity": "Expansion",
+      "change": 31636.0,
       "share_pct": 100.0
     },
     "secondary_driver": null,
     "other_drivers": [],
-    "driver_summary": "Gusto Payroll -248,373.3",
+    "driver_summary": "Expansion +31,636.0",
     "top_transactions": [
       {
-        "transaction_id": "E0003650",
-        "date": "2025-09-12",
-        "period": "2025-09",
-        "account": "Payroll",
-        "amount": 253090.37,
-        "description": "Gusto Payroll \u2014 biweekly payroll run 2025-09-12",
-        "customer": null,
-        "vendor": "Gusto Payroll",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003651",
-        "date": "2025-09-26",
-        "period": "2025-09",
-        "account": "Payroll",
-        "amount": 252059.5,
-        "description": "Gusto Payroll \u2014 biweekly payroll run 2025-09-26",
-        "customer": null,
-        "vendor": "Gusto Payroll",
-        "product": null,
-        "department": null,
-        "region": null
-      }
-    ],
-    "headline": "Payroll decreased 33.0%",
-    "explanation": "Payroll decreased $248,373, or 33.0%. Gusto Payroll was the largest contributor, accounting for approximately 100% of the change.",
-    "evidence_summary": "1 driver(s), 2 supporting transaction(s)",
-    "driver_ids": [
-      "DRV_PAYROLL_VENDOR_GUSTO_PAYROLL_2025_09"
-    ],
-    "transaction_ids": [
-      "E0003650",
-      "E0003651"
-    ],
-    "historical_trend": [
-      {
-        "period": "2025-07",
-        "change": 8634.419999999984,
-        "change_pct": 1.7574960664860508
-      },
-      {
-        "period": "2025-08",
-        "change": 253597.77999999997,
-        "change_pct": 50.72712245758577
-      },
-      {
-        "period": "2025-09",
-        "change": -248373.32999999996,
-        "change_pct": -32.961603571064565
-      },
-      {
+        "transaction_id": "INV-2025-10-001",
+        "date": "2025-10-02",
         "period": "2025-10",
-        "change": 8074.739999999991,
-        "change_pct": 1.5984840300958585
-      },
-      {
-        "period": "2025-11",
-        "change": -12247.479999999981,
-        "change_pct": -2.386378159067622
-      },
-      {
-        "period": "2025-12",
-        "change": 15452.299999999988,
-        "change_pct": 3.0844322174946366
-      }
-    ],
-    "change_vs_recent_avg_label": "1.8x the recent average monthly move",
-    "confirmed_context": null
-  },
-  {
-    "variance_id": "VAR_MARKETING_2025_08_2025_09",
-    "account": "Marketing",
-    "rank": 3,
-    "is_material": true,
-    "previous": 157891.81,
-    "current": 279266.71,
-    "change": 121374.90000000002,
-    "change_pct": 76.87219495425381,
-    "direction": "increase",
-    "primary_driver": {
-      "driver_id": "DRV_MARKETING_VENDOR_DEMANDBASE_2025_09",
-      "dimension": "vendor",
-      "entity": "Demandbase",
-      "change": 67014.5,
-      "share_pct": 55.21281582930242
-    },
-    "secondary_driver": {
-      "driver_id": "DRV_MARKETING_VENDOR_GOOGLE_ADS_2025_09",
-      "dimension": "vendor",
-      "entity": "Google Ads",
-      "change": 42806.93999999999,
-      "share_pct": 35.26836273397546
-    },
-    "other_drivers": [
-      {
-        "driver_id": "DRV_MARKETING_VENDOR_LINKEDIN_MARKETING_2025_09",
-        "dimension": "vendor",
-        "entity": "LinkedIn Marketing",
-        "change": 11979.300000000003,
-        "share_pct": 9.869668275730813
-      },
-      {
-        "driver_id": "DRV_MARKETING_VENDOR_META_ADS_2025_09",
-        "dimension": "vendor",
-        "entity": "Meta Ads",
-        "change": -425.84000000000015,
-        "share_pct": -0.35084683900872426
-      }
-    ],
-    "driver_summary": "Demandbase +67,014.5; Google Ads +42,806.9; LinkedIn Marketing +11,979.3; Meta Ads -425.8",
-    "top_transactions": [
-      {
-        "transaction_id": "E0003660",
-        "date": "2025-09-25",
-        "period": "2025-09",
-        "account": "Marketing",
-        "amount": 67014.5,
-        "description": "Demandbase \u2014 quarterly",
-        "customer": null,
-        "vendor": "Demandbase",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003658",
-        "date": "2025-09-03",
-        "period": "2025-09",
-        "account": "Marketing",
-        "amount": 145593.15,
-        "description": "Google Ads \u2014 monthly",
-        "customer": null,
-        "vendor": "Google Ads",
+        "account": "ACC-0001",
+        "amount": 31636.0,
+        "description": "Plan_Upgrade",
+        "customer": "ACC-0001",
+        "vendor": null,
         "product": null,
         "department": null,
         "region": null
       }
     ],
-    "headline": "Marketing increased 76.9%",
-    "explanation": "Marketing increased $121,375, or 76.9%. Demandbase and Google Ads were the largest contributors, accounting for approximately 90% of the change.",
-    "evidence_summary": "2 driver(s), 2 supporting transaction(s)",
-    "driver_ids": [
-      "DRV_MARKETING_VENDOR_DEMANDBASE_2025_09",
-      "DRV_MARKETING_VENDOR_GOOGLE_ADS_2025_09"
-    ],
-    "transaction_ids": [
-      "E0003660",
-      "E0003658"
-    ],
-    "historical_trend": [
-      {
-        "period": "2025-07",
-        "change": -79167.81,
-        "change_pct": -31.940136790838846
-      },
-      {
-        "period": "2025-08",
-        "change": -10803.470000000001,
-        "change_pct": -6.404132943138658
-      },
-      {
-        "period": "2025-09",
-        "change": 121374.90000000002,
-        "change_pct": 76.87219495425381
-      },
-      {
-        "period": "2025-10",
-        "change": -75445.14000000001,
-        "change_pct": -27.015443408919026
-      },
-      {
-        "period": "2025-11",
-        "change": 19583.929999999993,
-        "change_pct": 9.608369712783585
-      },
-      {
-        "period": "2025-12",
-        "change": 19280.160000000003,
-        "change_pct": 8.63011877505254
-      }
-    ],
-    "change_vs_recent_avg_label": "2.5x the recent average monthly move",
-    "confirmed_context": null
-  },
-  {
-    "variance_id": "VAR_SOFTWARE_TOOLS_2025_08_2025_09",
-    "account": "Software & Tools",
-    "rank": 4,
-    "is_material": true,
-    "previous": 46650.94,
-    "current": 97474.14,
-    "change": 50823.2,
-    "change_pct": 108.94357112632672,
-    "direction": "increase",
-    "primary_driver": {
-      "driver_id": "DRV_SOFTWARE_TOOLS_VENDOR_GOOGLE_WORKSPACE_2025_09",
-      "dimension": "vendor",
-      "entity": "Google Workspace",
-      "change": 29191.469999999998,
-      "share_pct": 57.437292417636044
-    },
-    "secondary_driver": {
-      "driver_id": "DRV_SOFTWARE_TOOLS_VENDOR_SLACK_TECHNOLOGIES_2025_09",
-      "dimension": "vendor",
-      "entity": "Slack Technologies",
-      "change": 12814.629999999997,
-      "share_pct": 25.214134489760575
-    },
-    "other_drivers": [
-      {
-        "driver_id": "DRV_SOFTWARE_TOOLS_VENDOR_OPENAI_2025_09",
-        "dimension": "vendor",
-        "entity": "OpenAI",
-        "change": 5044.97,
-        "share_pct": 9.926509940342207
-      },
-      {
-        "driver_id": "DRV_SOFTWARE_TOOLS_VENDOR_GITHUB_2025_09",
-        "dimension": "vendor",
-        "entity": "GitHub",
-        "change": 3700.2400000000007,
-        "share_pct": 7.280612003966694
-      },
-      {
-        "driver_id": "DRV_SOFTWARE_TOOLS_VENDOR_OTHER_2025_09",
-        "dimension": "vendor",
-        "entity": "Other",
-        "change": 71.88999999999896,
-        "share_pct": 0.14145114829447766
-      }
-    ],
-    "driver_summary": "Google Workspace +29,191.5; Slack Technologies +12,814.6; OpenAI +5,045.0; GitHub +3,700.2; Other +71.9",
-    "top_transactions": [
-      {
-        "transaction_id": "E0003756",
-        "date": "2025-09-09",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 12944.64,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003670",
-        "date": "2025-09-25",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 3595.69,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003740",
-        "date": "2025-09-22",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 3535.16,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003764",
-        "date": "2025-09-05",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 2462.28,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003710",
-        "date": "2025-09-15",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 2253.46,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003688",
-        "date": "2025-09-11",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 1892.49,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003736",
-        "date": "2025-09-05",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 1099.42,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003704",
-        "date": "2025-09-25",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 1045.77,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003696",
-        "date": "2025-09-08",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 824.49,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      },
-      {
-        "transaction_id": "E0003697",
-        "date": "2025-09-26",
-        "period": "2025-09",
-        "account": "Software & Tools",
-        "amount": 760.74,
-        "description": "Corporate card \u2014 Google Workspace",
-        "customer": null,
-        "vendor": "Google Workspace",
-        "product": null,
-        "department": null,
-        "region": null
-      }
-    ],
-    "headline": "Software & Tools increased 108.9%",
-    "explanation": "Software & Tools increased $50,823, or 108.9%. Google Workspace and Slack Technologies were the largest contributors, accounting for approximately 83% of the change.",
-    "evidence_summary": "2 driver(s), 20 supporting transaction(s)",
-    "driver_ids": [
-      "DRV_SOFTWARE_TOOLS_VENDOR_GOOGLE_WORKSPACE_2025_09",
-      "DRV_SOFTWARE_TOOLS_VENDOR_SLACK_TECHNOLOGIES_2025_09"
-    ],
-    "transaction_ids": [
-      "E0003756",
-      "E0003670",
-      "E0003740",
-      "E0003764",
-      "E0003710",
-      "E0003688",
-      "E0003736",
-      "E0003704",
-      "E0003696",
-      "E0003697",
-      "E0003716",
-      "E0003687",
-      "E0003743",
-      "E0003739",
-      "E0003715",
-      "E0003690",
-      "E0003747",
-      "E0003714",
-      "E0003730",
-      "E0003728"
-    ],
-    "historical_trend": [
-      {
-        "period": "2025-07",
-        "change": -251727.89999999997,
-        "change_pct": -84.30199555569754
-      },
-      {
-        "period": "2025-08",
-        "change": -223.6999999999971,
-        "change_pct": -0.47723033179560864
-      },
-      {
-        "period": "2025-09",
-        "change": 50823.2,
-        "change_pct": 108.94357112632672
-      },
-      {
-        "period": "2025-10",
-        "change": -49499.35,
-        "change_pct": -50.78203306025577
-      },
-      {
-        "period": "2025-11",
-        "change": 26575.389999999992,
-        "change_pct": 55.39448948082939
-      },
-      {
-        "period": "2025-12",
-        "change": -17108.869999999995,
-        "change_pct": -22.949468398332503
-      }
-    ],
-    "change_vs_recent_avg_label": "1.8x the recent average monthly move",
-    "confirmed_context": null
-  },
-  {
-    "variance_id": "VAR_LEGAL_PROFESSIONAL_2025_08_2025_09",
-    "account": "Legal & Professional",
-    "rank": 5,
-    "is_material": true,
-    "previous": 0.0,
-    "current": 17194.44,
-    "change": 17194.44,
-    "change_pct": 100.0,
-    "direction": "increase",
-    "primary_driver": {
-      "driver_id": "DRV_LEGAL_PROFESSIONAL_VENDOR_WILSON_SONSINI_2025_09",
-      "dimension": "vendor",
-      "entity": "Wilson Sonsini",
-      "change": 17194.44,
-      "share_pct": 100.0
-    },
-    "secondary_driver": null,
-    "other_drivers": [],
-    "driver_summary": "Wilson Sonsini +17,194.4",
-    "top_transactions": [
-      {
-        "transaction_id": "E0003661",
-        "date": "2025-09-17",
-        "period": "2025-09",
-        "account": "Legal & Professional",
-        "amount": 17194.44,
-        "description": "Wilson Sonsini \u2014 project invoice",
-        "customer": null,
-        "vendor": "Wilson Sonsini",
-        "product": null,
-        "department": null,
-        "region": null
-      }
-    ],
-    "headline": "Legal & Professional increased 100.0%",
-    "explanation": "Legal & Professional increased $17,194, or 100.0%. Wilson Sonsini was the largest contributor, accounting for approximately 100% of the change.",
+    "headline": "ACC-0001 increased 69.6%",
+    "explanation": "ACC-0001 increased $31,636, or 69.6%. Expansion was the largest contributor, accounting for approximately 100% of the change.",
     "evidence_summary": "1 driver(s), 1 supporting transaction(s)",
     "driver_ids": [
-      "DRV_LEGAL_PROFESSIONAL_VENDOR_WILSON_SONSINI_2025_09"
+      "DRV_ACC_0001_EXPANSION_AMOUNT_2025_10"
     ],
     "transaction_ids": [
-      "E0003661"
+      "INV-2025-10-001"
+    ],
+    "historical_trend": [
+      {
+        "period": "2026-07",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-08",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-09",
+        "change": 13012.150000000009,
+        "change_pct": 14.228352585272368
+      },
+      {
+        "period": "2026-10",
+        "change": 6472.429999999993,
+        "change_pct": 6.195823055909656
+      },
+      {
+        "period": "2026-11",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-12",
+        "change": 0.0,
+        "change_pct": 0.0
+      }
+    ],
+    "change_vs_recent_avg_label": "17.0x the recent average monthly move",
+    "confirmed_context": null
+  },
+  {
+    "variance_id": "VAR_ACC_0046_2025_09_2025_10",
+    "account": "ACC-0046",
+    "rank": 2,
+    "is_material": true,
+    "previous": 134225.05,
+    "current": 157030.44,
+    "change": 22805.390000000014,
+    "change_pct": 16.99041274337392,
+    "direction": "increase",
+    "primary_driver": {
+      "driver_id": "DRV_ACC_0046_EXPANSION_AMOUNT_2025_10",
+      "dimension": "billing_category",
+      "entity": "Expansion",
+      "change": 22805.39,
+      "share_pct": 99.99999999999993
+    },
+    "secondary_driver": null,
+    "other_drivers": [],
+    "driver_summary": "Expansion +22,805.4",
+    "top_transactions": [
+      {
+        "transaction_id": "INV-2025-10-004",
+        "date": "2025-10-21",
+        "period": "2025-10",
+        "account": "ACC-0046",
+        "amount": 22805.39,
+        "description": "Plan_Upgrade",
+        "customer": "ACC-0046",
+        "vendor": null,
+        "product": null,
+        "department": null,
+        "region": null
+      }
+    ],
+    "headline": "ACC-0046 increased 17.0%",
+    "explanation": "ACC-0046 increased $22,805, or 17.0%. Expansion was the largest contributor, accounting for approximately 100% of the change.",
+    "evidence_summary": "1 driver(s), 1 supporting transaction(s)",
+    "driver_ids": [
+      "DRV_ACC_0046_EXPANSION_AMOUNT_2025_10"
+    ],
+    "transaction_ids": [
+      "INV-2025-10-004"
+    ],
+    "historical_trend": [
+      {
+        "period": "2026-07",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-08",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-09",
+        "change": 20677.959999999992,
+        "change_pct": 12.980469120761404
+      },
+      {
+        "period": "2026-10",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-11",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-12",
+        "change": 0.0,
+        "change_pct": 0.0
+      }
+    ],
+    "change_vs_recent_avg_label": "6.5x the recent average monthly move",
+    "confirmed_context": null
+  },
+  {
+    "variance_id": "VAR_ACC_0018_2025_09_2025_10",
+    "account": "ACC-0018",
+    "rank": 3,
+    "is_material": true,
+    "previous": 2254.45,
+    "current": 0.0,
+    "change": -2254.45,
+    "change_pct": -100.0,
+    "direction": "decrease",
+    "primary_driver": {
+      "driver_id": "DRV_ACC_0018_CHURN_AMOUNT_2025_10",
+      "dimension": "billing_category",
+      "entity": "Churn",
+      "change": -2254.45,
+      "share_pct": 100.0
+    },
+    "secondary_driver": null,
+    "other_drivers": [],
+    "driver_summary": "Churn -2,254.4",
+    "top_transactions": [
+      {
+        "transaction_id": "CR-2025-10-004",
+        "date": "2025-10-03",
+        "period": "2025-10",
+        "account": "ACC-0018",
+        "amount": -2254.4500000000003,
+        "description": "Budget_Cut",
+        "customer": "ACC-0018",
+        "vendor": null,
+        "product": null,
+        "department": null,
+        "region": null
+      }
+    ],
+    "headline": "ACC-0018 decreased 100.0%",
+    "explanation": "ACC-0018 decreased $2,254, or 100.0%. Churn was the largest contributor, accounting for approximately 100% of the change.",
+    "evidence_summary": "1 driver(s), 1 supporting transaction(s)",
+    "driver_ids": [
+      "DRV_ACC_0018_CHURN_AMOUNT_2025_10"
+    ],
+    "transaction_ids": [
+      "CR-2025-10-004"
+    ],
+    "historical_trend": [
+      {
+        "period": "2025-07",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2025-08",
+        "change": -183.70000000000027,
+        "change_pct": -7.53440108278819
+      },
+      {
+        "period": "2025-09",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2025-10",
+        "change": -2254.45,
+        "change_pct": -100.0
+      }
+    ],
+    "change_vs_recent_avg_label": "39.8x the recent average monthly move",
+    "confirmed_context": null
+  },
+  {
+    "variance_id": "VAR_ACC_0008_2025_09_2025_10",
+    "account": "ACC-0008",
+    "rank": 4,
+    "is_material": true,
+    "previous": 1238.93,
+    "current": 0.0,
+    "change": -1238.93,
+    "change_pct": -100.0,
+    "direction": "decrease",
+    "primary_driver": {
+      "driver_id": "DRV_ACC_0008_CHURN_AMOUNT_2025_10",
+      "dimension": "billing_category",
+      "entity": "Churn",
+      "change": -1238.93,
+      "share_pct": 100.0
+    },
+    "secondary_driver": null,
+    "other_drivers": [],
+    "driver_summary": "Churn -1,238.9",
+    "top_transactions": [
+      {
+        "transaction_id": "CR-2025-10-003",
+        "date": "2025-10-24",
+        "period": "2025-10",
+        "account": "ACC-0008",
+        "amount": -1238.9299999999998,
+        "description": "Competitor_Switch",
+        "customer": "ACC-0008",
+        "vendor": null,
+        "product": null,
+        "department": null,
+        "region": null
+      }
+    ],
+    "headline": "ACC-0008 decreased 100.0%",
+    "explanation": "ACC-0008 decreased $1,239, or 100.0%. Churn was the largest contributor, accounting for approximately 100% of the change.",
+    "evidence_summary": "1 driver(s), 1 supporting transaction(s)",
+    "driver_ids": [
+      "DRV_ACC_0008_CHURN_AMOUNT_2025_10"
+    ],
+    "transaction_ids": [
+      "CR-2025-10-003"
     ],
     "historical_trend": [
       {
         "period": "2025-05",
-        "change": -95358.28,
-        "change_pct": -87.25389401315493
+        "change": 237.42000000000007,
+        "change_pct": 34.824060900303635
       },
       {
         "period": "2025-06",
-        "change": 66714.75,
-        "change_pct": 478.92857142857144
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2025-07",
+        "change": 319.74,
+        "change_pct": 34.784973726868216
+      },
+      {
+        "period": "2025-08",
+        "change": 0.0,
+        "change_pct": 0.0
       },
       {
         "period": "2025-09",
-        "change": -63450.31,
-        "change_pct": -78.67878566180687
+        "change": 0.0,
+        "change_pct": 0.0
       },
       {
         "period": "2025-10",
-        "change": 102938.41,
-        "change_pct": 598.6726523224951
-      },
-      {
-        "period": "2025-11",
-        "change": -51679.79000000001,
-        "change_pct": -43.018866196881206
-      },
-      {
-        "period": "2025-12",
-        "change": -18239.489999999998,
-        "change_pct": -26.645251505192025
+        "change": -1238.93,
+        "change_pct": -100.0
       }
     ],
-    "change_vs_recent_avg_label": "only 0.4x the recent average monthly move",
+    "change_vs_recent_avg_label": "7.2x the recent average monthly move",
+    "confirmed_context": null
+  },
+  {
+    "variance_id": "VAR_ACC_0002_2025_09_2025_10",
+    "account": "ACC-0002",
+    "rank": 5,
+    "is_material": true,
+    "previous": 95719.75,
+    "current": 82234.85,
+    "change": -13484.899999999994,
+    "change_pct": -14.087897220792986,
+    "direction": "decrease",
+    "primary_driver": {
+      "driver_id": "DRV_ACC_0002_SLA_CREDIT_AMOUNT_2025_10",
+      "dimension": "billing_category",
+      "entity": "Sla_Credit",
+      "change": -13484.9,
+      "share_pct": 100.00000000000004
+    },
+    "secondary_driver": null,
+    "other_drivers": [],
+    "driver_summary": "Sla_Credit -13,484.9",
+    "top_transactions": [
+      {
+        "transaction_id": "CR-2025-10-001",
+        "date": "2025-10-06",
+        "period": "2025-10",
+        "account": "ACC-0002",
+        "amount": -13484.9,
+        "description": "System_Outage_Credit",
+        "customer": "ACC-0002",
+        "vendor": null,
+        "product": null,
+        "department": null,
+        "region": null
+      }
+    ],
+    "headline": "ACC-0002 decreased 14.1%",
+    "explanation": "ACC-0002 decreased $13,485, or 14.1%. Sla_Credit was the largest contributor, accounting for approximately 100% of the change.",
+    "evidence_summary": "1 driver(s), 1 supporting transaction(s)",
+    "driver_ids": [
+      "DRV_ACC_0002_SLA_CREDIT_AMOUNT_2025_10"
+    ],
+    "transaction_ids": [
+      "CR-2025-10-001"
+    ],
+    "historical_trend": [
+      {
+        "period": "2026-07",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-08",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-09",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-10",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-11",
+        "change": 0.0,
+        "change_pct": 0.0
+      },
+      {
+        "period": "2026-12",
+        "change": 0.0,
+        "change_pct": 0.0
+      }
+    ],
+    "change_vs_recent_avg_label": null,
     "confirmed_context": null
   }
 ]

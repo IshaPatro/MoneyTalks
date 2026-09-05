@@ -1,77 +1,50 @@
-import csv
 from pathlib import Path
 
 import pytest
 
-from backend.finance_engine.ingestion import DatasetValidationError, load_dataset
+from backend.finance_engine.ingestion import (
+    DatasetValidationError, load_dataset, month_to_period, period_to_month,
+)
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DATA_CSV = REPO_ROOT / "data" / "subscription_accounts.csv"
+
+pytestmark = pytest.mark.skipif(not DATA_CSV.exists(), reason="synthetic dataset not present")
 
 
-def _write(path: Path, header: list[str], rows: list[list]) -> None:
-    with open(path, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerows(rows)
+def test_month_period_roundtrip():
+    for m in [1, 2, 12, 13, 24, 25]:
+        assert period_to_month(month_to_period(m)) == m
 
 
-def test_load_generic_schema(tmp_path: Path):
-    summary_path = tmp_path / "summary.csv"
-    txn_path = tmp_path / "transactions.csv"
-    _write(summary_path, ["period", "account", "amount"], [["2026-01", "Revenue", 1000]])
-    _write(
-        txn_path,
-        ["transaction_id", "date", "period", "account", "amount", "customer"],
-        [["TX1", "2026-01-05", "2026-01", "Revenue", 1000, "Acme"]],
-    )
-
-    dataset = load_dataset(summary_path, txn_path)
-    assert dataset.periods == ["2026-01"]
-    assert dataset.accounts == ["Revenue"]
-    assert "customer" in dataset.available_dimensions
-    assert "vendor" not in dataset.available_dimensions
+def test_month_to_period_matches_generator_anchor():
+    assert month_to_period(1) == "2025-01"
+    assert month_to_period(12) == "2025-12"
+    assert month_to_period(13) == "2026-01"
 
 
-def test_load_demo_schema_aliases(tmp_path: Path):
-    """The shipped Northstar AI CSVs use account_name/amount_usd/txn_id/
-    txn_date/counterparty_* instead of the generic column names -- the
-    loader must transparently handle both."""
-    summary_path = tmp_path / "summary.csv"
-    txn_path = tmp_path / "transactions.csv"
-    _write(
-        summary_path,
-        ["period", "account_code", "account_name", "account_type", "amount_usd", "txn_count"],
-        [["2026-01", 4000, "Subscription Revenue", "revenue", 500000, 100]],
-    )
-    _write(
-        txn_path,
-        [
-            "txn_id", "txn_date", "period", "account_name", "amount_usd",
-            "counterparty_type", "counterparty_name",
-        ],
-        [
-            ["E1", "2026-01-02", "2026-01", "Subscription Revenue", 5000, "customer", "Acme"],
-            ["E2", "2026-01-02", "2026-01", "Subscription Revenue", -2000, "vendor", "AWS"],
-        ],
-    )
+def test_load_real_dataset():
+    dataset = load_dataset(DATA_CSV)
+    info = dataset.info()
+    assert info["account_count"] > 0
+    assert "2025-01" in info["periods"]
+    assert set(info["available_dimensions"]) == {"account", "company_size", "industry", "contract_type"}
+    assert set(info["billing_categories"]) == {
+        "new_arr", "expansion", "contraction", "churn", "sla_credit", "refund", "usage_overage",
+    }
 
-    dataset = load_dataset(summary_path, txn_path)
-    assert dataset.accounts == ["Subscription Revenue"]
-    assert set(dataset.available_dimensions) >= {"customer", "vendor"}
-    assert dataset.transactions.loc[dataset.transactions["transaction_id"] == "E1", "customer"].iloc[0] == "Acme"
-    assert dataset.transactions.loc[dataset.transactions["transaction_id"] == "E2", "vendor"].iloc[0] == "AWS"
+
+def test_list_columns_are_parsed_into_real_lists():
+    dataset = load_dataset(DATA_CSV)
+    df = dataset.accounts_df
+    sample = df[df["transaction_count"] > 0].iloc[0]
+    assert isinstance(sample["transaction_ids"], list)
+    assert isinstance(sample["transaction_amounts"], list)
+    assert len(sample["transaction_ids"]) == sample["transaction_count"]
 
 
 def test_missing_required_column_raises(tmp_path: Path):
-    summary_path = tmp_path / "summary.csv"
-    _write(summary_path, ["period", "amount"], [["2026-01", 1000]])  # missing 'account'
-
+    bad_csv = tmp_path / "bad.csv"
+    bad_csv.write_text("account_id,month\nACC-1,1\n")
     with pytest.raises(DatasetValidationError):
-        load_dataset(summary_path)
-
-
-def test_summary_only_dataset_works_without_transactions(tmp_path: Path):
-    summary_path = tmp_path / "summary.csv"
-    _write(summary_path, ["period", "account", "amount"], [["2026-01", "Revenue", 1000]])
-
-    dataset = load_dataset(summary_path)
-    assert dataset.transactions.empty
-    assert dataset.available_dimensions == []
+        load_dataset(bad_csv)

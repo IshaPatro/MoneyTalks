@@ -52,6 +52,19 @@ _FLAT_WORDS = {
 # not plausibly be called "flat" -- avoids flagging genuinely small moves.
 FLAT_CONTRADICTION_THRESHOLD_PCT = 5.0
 
+# Phrases claiming growth/decline is diffuse rather than concentrated in
+# one entity -- exactly the "concentration risk" question: a claim like
+# this is checkable even with no named entity, by asking whether the
+# single largest driver actually dominates the change.
+_BROAD_BASED_PHRASES = [
+    "broad-based", "broad based", "broadly based", "across the customer base",
+    "across our customer base", "widespread", "diversified growth",
+    "many customers", "across the board",
+]
+# If the single largest driver covers more than this share of the total
+# change, the movement is concentrated, not broad-based.
+CONCENTRATION_CONTRADICTION_THRESHOLD = 0.5
+
 
 def _extract_claimed_entities(claim_text: str, known_entities: list[str]) -> list[str]:
     """Deterministic substring match of known driver entities inside the
@@ -70,6 +83,11 @@ def _claimed_direction(claim_text: str) -> Optional[str]:
     if words & _DECREASE_WORDS:
         return "decrease"
     return None
+
+
+def _claims_broad_based(claim_text: str) -> bool:
+    text_lower = claim_text.lower()
+    return any(phrase in text_lower for phrase in _BROAD_BASED_PHRASES)
 
 
 def _actual_direction(variance: Variance) -> str:
@@ -187,6 +205,7 @@ def verify_narrative_claim(
 
     claimed_entities = _extract_claimed_entities(claim_text, all_entities)
     claimed_dir = _claimed_direction(claim_text)
+    claims_broad_based = _claims_broad_based(claim_text)
 
     matched_drivers = [d for d in drivers if d.entity in claimed_entities]
     total_abs = abs(variance.change) or sum(abs(d.change) for d in drivers) or 1.0
@@ -196,8 +215,24 @@ def verify_narrative_claim(
         else None
     )
 
+    largest_driver = max(drivers, key=lambda d: abs(d.change)) if drivers else None
+    largest_share = (abs(largest_driver.change) / total_abs) if largest_driver else 0.0
+    # entities actually behind the verdict, for evidence/reasoning -- kept
+    # separate from claimed_entities (what the claim literally named) so a
+    # broad-based claim naming nobody doesn't get misrepresented as having
+    # named the entity that disproves it.
+    discovered_entities: list[str] = []
+
     if _direction_contradicts(claimed_dir, variance):
         verdict = "contradicted"
+    elif claims_broad_based and not claimed_entities:
+        if largest_driver is not None and largest_share > CONCENTRATION_CONTRADICTION_THRESHOLD:
+            verdict = "contradicted"
+            discovered_entities = [largest_driver.entity]
+            match_pct = largest_share
+        else:
+            verdict = "supported"
+            match_pct = 1.0 - largest_share
     elif not claimed_entities:
         verdict = "unverifiable"
     elif match_pct >= SUPPORTED_THRESHOLD:
@@ -207,14 +242,30 @@ def verify_narrative_claim(
     else:
         verdict = "unsupported"
 
-    reasoning = _llm_reasoning(
-        claim_text, variance, verdict, match_pct, claimed_entities, named_drivers
-    ) or _template_reasoning(
-        claim_text, variance, verdict, match_pct, claimed_entities, actual_top_entities
-    )
+    evidence_entities = discovered_entities or claimed_entities
 
+    if claims_broad_based and not claimed_entities:
+        if verdict == "contradicted":
+            reasoning = (
+                f"The claim describes broad-based movement, but {largest_driver.entity} alone "
+                f"accounts for {largest_share * 100:.0f}% of the change -- this is concentrated "
+                f"in a single entity, not broad-based."
+            )
+        else:
+            reasoning = (
+                f"No single entity dominates: the largest driver accounts for only "
+                f"{largest_share * 100:.0f}% of the change, consistent with a broad-based movement."
+            )
+    else:
+        reasoning = _llm_reasoning(
+            claim_text, variance, verdict, match_pct, claimed_entities, named_drivers
+        ) or _template_reasoning(
+            claim_text, variance, verdict, match_pct, claimed_entities, actual_top_entities
+        )
+
+    evidence_drivers = [d for d in drivers if d.entity in evidence_entities] or matched_drivers or named_drivers
     transaction_ids: list[str] = []
-    for d in matched_drivers or named_drivers:
+    for d in evidence_drivers:
         txns = analytics.get_top_transactions(variance.variance_id, entity=d.entity)
         transaction_ids.extend(t.transaction_id for t in txns)
 
@@ -222,11 +273,11 @@ def verify_narrative_claim(
         variance_id=variance.variance_id,
         claim_text=claim_text,
         claimed_entities=claimed_entities,
-        matched_entities=claimed_entities,
+        matched_entities=evidence_entities,
         actual_top_entities=actual_top_entities,
         match_pct=match_pct,
         verdict=verdict,
         reasoning=reasoning,
-        driver_ids=[d.driver_id for d in (matched_drivers or named_drivers)],
+        driver_ids=[d.driver_id for d in evidence_drivers],
         transaction_ids=transaction_ids,
     )

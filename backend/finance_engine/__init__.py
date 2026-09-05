@@ -1,9 +1,10 @@
-from .engine import FinanceEngine
-from .ingestion import DatasetValidationError, FinanceDataset, load_dataset
+from .engine import FinanceEngine, PORTFOLIO_ACCOUNT_NAME
+from .ingestion import DatasetValidationError, SubscriptionDataset, load_dataset
 
 __all__ = [
     "FinanceEngine",
-    "FinanceDataset",
+    "PORTFOLIO_ACCOUNT_NAME",
+    "SubscriptionDataset",
     "load_dataset",
     "DatasetValidationError",
 ]
