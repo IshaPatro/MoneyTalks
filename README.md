@@ -408,92 +408,61 @@ WhaleWatch can explain:
 
 # How to Run / Use It
 
-## 1. Clone the Repository
+WhaleWatch is a single Streamlit app backed by a real Python analytics
+engine (`backend/`) -- there's no separate frontend/backend process or
+Node toolchain to run.
 
-`git clone <repository-url>`
+## 1. Clone the repository and set up a virtual environment
 
-`cd whalewatch`
+```bash
+git clone <repository-url>
+cd MoneyTalks
+python3 -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+```
 
-## 2. Start the Backend
+## 2. Install dependencies
 
-`cd backend`
+```bash
+pip install -r requirements.txt
+```
 
-Create a virtual environment:
+## 3. Start the app
 
-`python -m venv venv`
+```bash
+streamlit run app.py
+```
 
-Activate it on macOS/Linux:
+Open the URL printed in the terminal, normally
+[http://localhost:8501](http://localhost:8501).
 
-`source venv/bin/activate`
+The real dataset (`data/subscription_accounts.csv`) is already generated
+and committed -- nothing else to download or configure. If you ever want
+to regenerate it (e.g. after editing the generator), run:
 
-Or on Windows:
+```bash
+python3 data/generate_subscription_data.py
+```
 
-`venv\Scripts\activate`
+## 4. What's on the page
 
-Install dependencies:
+The app has three tabs:
 
-`pip install -r requirements.txt`
+- **📊 Overview** -- the six CFO KPIs, revenue quality / concentration /
+  MRR bridge / regime / industry / growth-map charts, an executive
+  concentration readout, and the **Whale Agent** chat panel. Paste an
+  Anthropic API key at the top to switch the agent from template answers
+  to live LLM-generated ones.
+- **🕸️ Risk Graph** -- a directed, weighted graph (reliability incidents,
+  support friction, payment delays &rarr; financial consequences &rarr;
+  accounts) with PageRank-based cascade risk scoring, a risk amplifier
+  ranking, and a traced cascading-loss-path viewer.
+- **📞 Investor Call Fact-Check** -- paste a claim from an earnings call
+  or investor update (or click one of the example buttons) and it's
+  checked against the real driver data -- supported, contradicted,
+  partially supported, or unverifiable, with the evidence shown.
 
-Start FastAPI:
-
-`uvicorn app.main:app --reload`
-
-The backend will run on:
-
-`http://localhost:8000`
-
-## 3. Start the Frontend
-
-Open another terminal:
-
-`cd frontend`
-
-Install dependencies:
-
-`npm install`
-
-Start the development server:
-
-`npm run dev`
-
-The frontend will run on:
-
-`http://localhost:3000`
-
-## 4. Load Revenue Data
-
-Load the customer-level SaaS revenue dataset.
-
-The dataset contains information such as:
-
-- Customer / Account ID
-- Period
-- MRR
-- Industry
-- Customer status
-- Revenue movement
-
-## 5. Open the Dashboard
-
-WhaleWatch automatically calculates:
-
-- Total MRR
-- MRR excluding the largest account
-- Top 1 exposure
-- Top 5 exposure
-- Gross MRR loss
-- HHI concentration score
-
-The dashboard then visualizes:
-
-- Revenue quality
-- Customer concentration
-- MRR movement bridge
-- Company regime state
-- Industry distribution
-- Executive concentration readout
-
-## 6. Ask Mr. Whale
+## 5. Ask Mr. Whale
 
 Use the Whale Agent panel to investigate the portfolio conversationally.
 
@@ -501,7 +470,10 @@ For example:
 
 > **Why did MRR increase?**
 
-The agent traces the movement back to customer-level data and explains whether that growth is diversified or concentrated.
+The agent traces the movement back to real customer-level data
+(`backend/agent_engine`) and explains whether that growth is diversified
+or concentrated -- optionally via a live LLM if you've set an API key,
+otherwise via a deterministic template that still cites real numbers.
 
 ---
 
