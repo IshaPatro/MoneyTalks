@@ -66,12 +66,18 @@ def _llm_explanation(
     named_share: float,
     historical_note: Optional[str],
 ) -> Optional[str]:
-    """Try to generate the narrative with Claude. Returns None if no API
-    key is configured or the call fails, so callers can fall back."""
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    """Try to generate the narrative with Claude (preferred) or OpenAI as a
+    fallback provider. Returns None if no API key is configured or the
+    call fails, so callers can fall back to the template."""
+    use_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    use_openai = not use_anthropic and bool(os.environ.get("OPENAI_API_KEY"))
+    if not use_anthropic and not use_openai:
         return None
     try:
-        import anthropic
+        if use_anthropic:
+            import anthropic
+        else:
+            import openai
     except ImportError:
         return None
 
@@ -98,19 +104,27 @@ current numbers above): {historical_note or "none"}
 Write 2-3 sentences: what changed, why (top drivers), and historical context
 if relevant. Be concise and concrete. Do not restate the raw prompt.
 """
-    model = "claude-sonnet-5"
+    model = "claude-sonnet-5" if use_anthropic else "gpt-4o-mini"
     messages = [{"role": "user", "content": prompt}]
     started = time.perf_counter()
     try:
-        client = anthropic.Anthropic()
-        resp = client.messages.create(model=model, max_tokens=300, messages=messages)
-        text = resp.content[0].text.strip()
+        if use_anthropic:
+            client = anthropic.Anthropic()
+            resp = client.messages.create(model=model, max_tokens=300, messages=messages)
+            text = resp.content[0].text.strip()
+            usage_in = getattr(resp.usage, "input_tokens", None)
+            usage_out = getattr(resp.usage, "output_tokens", None)
+        else:
+            client = openai.OpenAI()
+            resp = client.chat.completions.create(model=model, max_tokens=300, messages=messages)
+            text = resp.choices[0].message.content.strip()
+            usage_in = getattr(resp.usage, "prompt_tokens", None)
+            usage_out = getattr(resp.usage, "completion_tokens", None)
         record_llm_call(
             model=model, input_messages=messages, output_message=text,
             latency_ms=(time.perf_counter() - started) * 1000,
             agent_name="whyledger-explain", session_id=variance.variance_id,
-            token_count_input=getattr(resp.usage, "input_tokens", None),
-            token_count_output=getattr(resp.usage, "output_tokens", None),
+            token_count_input=usage_in, token_count_output=usage_out,
             metadata={"account": variance.account},
         )
         return text

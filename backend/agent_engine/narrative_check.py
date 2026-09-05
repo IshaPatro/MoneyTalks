@@ -112,10 +112,15 @@ def _llm_reasoning(
     matched_entities: list[str],
     actual_drivers: list[Driver],
 ) -> Optional[str]:
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    use_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    use_openai = not use_anthropic and bool(os.environ.get("OPENAI_API_KEY"))
+    if not use_anthropic and not use_openai:
         return None
     try:
-        import anthropic
+        if use_anthropic:
+            import anthropic
+        else:
+            import openai
     except ImportError:
         return None
 
@@ -138,19 +143,27 @@ Computed match percentage of the claim's mentioned entities vs. the actual chang
 
 Explain, in 1-2 sentences, why the statement earns this verdict.
 """
-    model = "claude-sonnet-5"
+    model = "claude-sonnet-5" if use_anthropic else "gpt-4o-mini"
     messages = [{"role": "user", "content": prompt}]
     started = time.perf_counter()
     try:
-        client = anthropic.Anthropic()
-        resp = client.messages.create(model=model, max_tokens=200, messages=messages)
-        text = resp.content[0].text.strip()
+        if use_anthropic:
+            client = anthropic.Anthropic()
+            resp = client.messages.create(model=model, max_tokens=200, messages=messages)
+            text = resp.content[0].text.strip()
+            usage_in = getattr(resp.usage, "input_tokens", None)
+            usage_out = getattr(resp.usage, "output_tokens", None)
+        else:
+            client = openai.OpenAI()
+            resp = client.chat.completions.create(model=model, max_tokens=200, messages=messages)
+            text = resp.choices[0].message.content.strip()
+            usage_in = getattr(resp.usage, "prompt_tokens", None)
+            usage_out = getattr(resp.usage, "completion_tokens", None)
         record_llm_call(
             model=model, input_messages=messages, output_message=text,
             latency_ms=(time.perf_counter() - started) * 1000,
             agent_name="whyledger-narrative-check", session_id=variance.variance_id,
-            token_count_input=getattr(resp.usage, "input_tokens", None),
-            token_count_output=getattr(resp.usage, "output_tokens", None),
+            token_count_input=usage_in, token_count_output=usage_out,
             metadata={"account": variance.account, "verdict": verdict},
         )
         return text
