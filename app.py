@@ -48,7 +48,7 @@ def load_real_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         "account_id", "month", "company_size", "industry", "contract_type",
         "regime_state", "current_mrr", "previous_mrr", "mrr_change",
         "positive_transaction_amount", "negative_transaction_amount",
-        "expansion_amount", "churn_amount", "churn_flag", "timestamp",
+        "expansion_amount", "churn_amount", "churn_flag",
     ]
     df = pd.read_csv(path, usecols=columns)
 
@@ -65,9 +65,12 @@ def load_real_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
         net_change=("mrr_change", "sum"), expansion=("positive_transaction_amount", "sum"),
         losses=("negative_transaction_amount", "sum"), churn_mrr=("churn_amount", "sum"),
         churned=("churn_flag", "sum"), active_customers=("active_customer", "sum"),
-        largest_account_mrr=("current_mrr", "max"), timestamp=("timestamp", "max"),
+        largest_account_mrr=("current_mrr", "max"),
     )
-    monthly["period"] = pd.to_datetime(monthly["timestamp"], errors="coerce").dt.to_period("M").dt.to_timestamp()
+    # Derive the calendar period straight from the integer month index --
+    # avoids aggregating the raw (partly-empty) timestamp string column,
+    # which is fragile and was the source of a real crash here.
+    monthly["period"] = pd.to_datetime(monthly["month"].apply(month_to_period))
     monthly["month_label"] = monthly["period"].dt.strftime("%b %Y")
     monthly["underlying_mrr"] = monthly["total_mrr"] - monthly["largest_account_mrr"]
     monthly = monthly.sort_values("month").reset_index(drop=True)
