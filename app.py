@@ -10,9 +10,9 @@ import streamlit as st
 
 
 ROOT = Path(__file__).resolve().parent
-DATA_PATH = ROOT / "data" / "data.csv"
-OUTPUT_PATH = ROOT / "data" / "output.csv"
-CONCENTRATION_PATH = ROOT / "data" / "concentration_overrides.csv"
+PROCESSED_DIR = ROOT / "data" / "processed"
+MONTHLY_PATH = PROCESSED_DIR / "monthly_metrics.csv"
+ACCOUNTS_PATH = PROCESSED_DIR / "latest_accounts.csv"
 LOGO_PATH = ROOT / "assets" / "logo.png"
 
 BLACK = "#000000"
@@ -32,105 +32,20 @@ st.set_page_config(
 
 
 @st.cache_data(show_spinner=False)
-def load_real_data(
-    path: Path,
-    overrides_path: Path,
-    overrides_version: int,
+def load_processed_data(
+    monthly_path: Path,
+    accounts_path: Path,
+    monthly_version: int,
+    accounts_version: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Stream the 1.2 GB CSV and retain only CFO aggregates and latest accounts."""
-    import pyarrow as pa
-    import pyarrow.csv as pacsv
-
-    del overrides_version  # Included in the cache key so CSV edits invalidate aggregates.
-    overrides = pd.read_csv(overrides_path)
-    override_columns = [
-        "current_mrr", "previous_mrr", "mrr_change", "positive_transaction_amount",
-        "negative_transaction_amount", "expansion_amount", "churn_amount", "churn_flag",
-    ]
-    override_map = {
-        (int(row["account_id"]), int(row["month"])): row
-        for _, row in overrides.iterrows()
-    }
-    override_accounts = set(overrides["account_id"].astype(int))
-
-    columns = [
-        "account_id", "month", "company_size", "industry", "contract_type",
-        "regime_state", "current_mrr", "previous_mrr", "mrr_change",
-        "positive_transaction_amount", "negative_transaction_amount",
-        "expansion_amount", "churn_amount", "churn_flag", "timestamp",
-    ]
-    reader = pacsv.open_csv(
-        path,
-        read_options=pacsv.ReadOptions(block_size=32 * 1024 * 1024, use_threads=True),
-        convert_options=pacsv.ConvertOptions(
-            include_columns=columns,
-            column_types={
-                "account_id": pa.int64(), "month": pa.int32(),
-                "current_mrr": pa.float64(), "previous_mrr": pa.float64(),
-                "mrr_change": pa.float64(), "positive_transaction_amount": pa.float64(),
-                "negative_transaction_amount": pa.float64(), "expansion_amount": pa.float64(),
-                "churn_amount": pa.float64(), "churn_flag": pa.bool_(),
-            },
-        ),
-    )
-
-    monthly_parts: list[pd.DataFrame] = []
-    latest_parts: list[pd.DataFrame] = []
-    latest_month = -1
-    numeric = [
-        "current_mrr", "previous_mrr", "mrr_change", "positive_transaction_amount",
-        "negative_transaction_amount", "expansion_amount", "churn_amount",
-    ]
-    for batch in reader:
-        chunk = batch.to_pandas()
-        candidate_rows = chunk.index[chunk["account_id"].isin(override_accounts)]
-        for row_index in candidate_rows:
-            key = (int(chunk.at[row_index, "account_id"]), int(chunk.at[row_index, "month"]))
-            override = override_map.get(key)
-            if override is not None:
-                for column in override_columns:
-                    chunk.at[row_index, column] = override[column]
-        chunk[numeric] = chunk[numeric].fillna(0)
-        chunk["churn_flag"] = chunk["churn_flag"].fillna(False).astype(int)
-        chunk["active_customer"] = chunk["current_mrr"].gt(0).astype(int)
-        grouped = chunk.groupby("month", as_index=False).agg(
-            total_mrr=("current_mrr", "sum"),
-            previous_mrr=("previous_mrr", "sum"),
-            net_change=("mrr_change", "sum"),
-            expansion=("positive_transaction_amount", "sum"),
-            losses=("negative_transaction_amount", "sum"),
-            churn_mrr=("churn_amount", "sum"),
-            churned=("churn_flag", "sum"),
-            active_customers=("active_customer", "sum"),
-            largest_account_mrr=("current_mrr", "max"),
-            timestamp=("timestamp", "max"),
-        )
-        monthly_parts.append(grouped)
-
-        batch_max = int(chunk["month"].max())
-        if batch_max > latest_month:
-            latest_month = batch_max
-            latest_parts = []
-        latest_slice = chunk[chunk["month"].eq(latest_month)].copy()
-        if not latest_slice.empty:
-            latest_parts.append(latest_slice)
-
-    monthly = pd.concat(monthly_parts, ignore_index=True)
-    monthly = monthly.groupby("month", as_index=False).agg(
-        total_mrr=("total_mrr", "sum"), previous_mrr=("previous_mrr", "sum"),
-        net_change=("net_change", "sum"), expansion=("expansion", "sum"),
-        losses=("losses", "sum"), churn_mrr=("churn_mrr", "sum"),
-        churned=("churned", "sum"), active_customers=("active_customers", "sum"),
-        largest_account_mrr=("largest_account_mrr", "max"), timestamp=("timestamp", "max"),
-    )
+    """Load the compact, concentration-adjusted datasets committed with the app."""
+    del monthly_version, accounts_version  # File mtimes invalidate Streamlit's data cache.
+    monthly = pd.read_csv(monthly_path)
+    latest = pd.read_csv(accounts_path)
     monthly["period"] = pd.to_datetime(monthly["timestamp"], errors="coerce").dt.to_period("M").dt.to_timestamp()
     monthly["month_label"] = monthly["period"].dt.strftime("%b %Y")
     monthly["underlying_mrr"] = monthly["total_mrr"] - monthly["largest_account_mrr"]
     monthly = monthly.sort_values("month").reset_index(drop=True)
-
-    latest = pd.concat(latest_parts, ignore_index=True)
-    latest = latest[latest["month"].eq(latest_month)].drop_duplicates("account_id", keep="last")
-    latest["customer"] = latest["account_id"].map(lambda value: f"Account {int(value):06d}")
     latest["mrr"] = latest["current_mrr"].clip(lower=0)
     return monthly, latest
 
@@ -508,26 +423,27 @@ st.markdown(
 )
 
 
-if not OUTPUT_PATH.exists() or not CONCENTRATION_PATH.exists():
-    st.error("Required input data was not found in the data directory.")
+if not MONTHLY_PATH.exists() or not ACCOUNTS_PATH.exists():
+    st.error("Required processed data was not found in data/processed.")
     st.stop()
 
 loader = st.empty()
 loader.markdown(
     f"<div class='loader-card'><img src='{image_data_uri(LOGO_PATH)}' alt='WhaleWatch loading'>"
-    "<strong>WhaleWatch is scanning your revenue ocean</strong>"
-    "<span>Aggregating 1.15 million records, identifying whales, and measuring hidden churn…</span>"
+    "<strong>WhaleWatch is preparing your revenue ocean</strong>"
+    "<span>Loading the concentrated portfolio, identifying whales, and measuring hidden churn…</span>"
     "<div class='loader-line'><i></i></div></div>",
     unsafe_allow_html=True,
 )
-monthly, current = load_real_data(
-    OUTPUT_PATH,
-    CONCENTRATION_PATH,
-    CONCENTRATION_PATH.stat().st_mtime_ns,
+monthly, current = load_processed_data(
+    MONTHLY_PATH,
+    ACCOUNTS_PATH,
+    MONTHLY_PATH.stat().st_mtime_ns,
+    ACCOUNTS_PATH.stat().st_mtime_ns,
 )
 loader.empty()
 if monthly.empty or current.empty:
-    st.error("data/output.csv did not contain usable monthly account records.")
+    st.error("The processed data files do not contain usable portfolio records.")
     st.stop()
 
 latest_month = monthly.iloc[-1]
@@ -593,7 +509,7 @@ st.markdown(
 
 st.markdown(
     "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
-    f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/output.csv</div></div>",
+    f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/processed</div></div>",
     unsafe_allow_html=True,
 )
 
@@ -694,4 +610,4 @@ with agent_col:
             st.session_state.whale_chat_messages_v2.append({"role": "user", "content": question.strip()})
             st.session_state.whale_chat_messages_v2.append({"role": "agent", "content": agent_answer(question, stats)})
             st.rerun()
-        st.caption("Answers calculated from data/output.csv")
+        st.caption("Answers calculated from data/processed")
