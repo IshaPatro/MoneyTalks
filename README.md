@@ -47,6 +47,7 @@ MoneyTalks/
 ├── app.py              # Streamlit dashboard and local agent
 ├── assets/logo.png     # WhaleWatch logo
 ├── data/output.csv     # Full account-month and transaction dataset
+├── data/concentration_overrides.csv # Reversible concentration-risk scenario
 ├── requirements.txt    # Python dependencies
 └── README.md           # Setup and run instructions
 ```
@@ -54,8 +55,11 @@ MoneyTalks/
 ## Dashboard coverage
 
 - Six CFO KPIs: total MRR, MRR excluding the whale, Top-1 and Top-5 exposure, customer losses, and HHI concentration.
-- Four interactive charts: revenue quality, customer concentration, MRR movement bridge, and customer growth map.
-- A Concentration Risk Agent that checks the baseline, identifies the largest accounts, spots hidden losses, and explains actual portfolio risk.
+- Five interactive charts: revenue quality, a multicolor customer-distribution donut, MRR movement bridge, company regime-state distribution, and industry distribution.
+- A Whale Agent that checks the baseline, identifies the largest accounts, spots hidden losses, and explains actual portfolio risk.
+- A logo-first agent panel that becomes a conversational chatbot after the first question, with no visualizations embedded in chat.
+- A compact executive concentration readout beneath the charts repeats the verified baseline, largest-account movement, hidden losses, and real business story.
+- A reversible input overlay makes Account 008593 a deliberate concentration-risk scenario without rewriting the 1.2 GB source file.
 - A branded loading screen appears during the first streaming aggregation; subsequent reruns use Streamlit's data cache.
 - Green is reserved for positive indicators; red is reserved for losses and risk.
 - The analytics workspace uses two-thirds of the screen and the agent uses the remaining one-third.

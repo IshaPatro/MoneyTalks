@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import html
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +12,7 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT / "data" / "data.csv"
 OUTPUT_PATH = ROOT / "data" / "output.csv"
+CONCENTRATION_PATH = ROOT / "data" / "concentration_overrides.csv"
 LOGO_PATH = ROOT / "assets" / "logo.png"
 
 BLACK = "#000000"
@@ -32,10 +32,26 @@ st.set_page_config(
 
 
 @st.cache_data(show_spinner=False)
-def load_real_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def load_real_data(
+    path: Path,
+    overrides_path: Path,
+    overrides_version: int,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Stream the 1.2 GB CSV and retain only CFO aggregates and latest accounts."""
     import pyarrow as pa
     import pyarrow.csv as pacsv
+
+    del overrides_version  # Included in the cache key so CSV edits invalidate aggregates.
+    overrides = pd.read_csv(overrides_path)
+    override_columns = [
+        "current_mrr", "previous_mrr", "mrr_change", "positive_transaction_amount",
+        "negative_transaction_amount", "expansion_amount", "churn_amount", "churn_flag",
+    ]
+    override_map = {
+        (int(row["account_id"]), int(row["month"])): row
+        for _, row in overrides.iterrows()
+    }
+    override_accounts = set(overrides["account_id"].astype(int))
 
     columns = [
         "account_id", "month", "company_size", "industry", "contract_type",
@@ -67,6 +83,13 @@ def load_real_data(path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     ]
     for batch in reader:
         chunk = batch.to_pandas()
+        candidate_rows = chunk.index[chunk["account_id"].isin(override_accounts)]
+        for row_index in candidate_rows:
+            key = (int(chunk.at[row_index, "account_id"]), int(chunk.at[row_index, "month"]))
+            override = override_map.get(key)
+            if override is not None:
+                for column in override_columns:
+                    chunk.at[row_index, column] = override[column]
         chunk[numeric] = chunk[numeric].fillna(0)
         chunk["churn_flag"] = chunk["churn_flag"].fillna(False).astype(int)
         chunk["active_customer"] = chunk["current_mrr"].gt(0).astype(int)
@@ -194,25 +217,53 @@ def revenue_quality_chart(monthly: pd.DataFrame) -> go.Figure:
 
 def concentration_chart(current: pd.DataFrame) -> go.Figure:
     ranked = current.sort_values("mrr", ascending=False).reset_index(drop=True)
-    display = ranked.head(6)[["customer", "mrr"]].copy()
-    rest = ranked.iloc[6:]["mrr"].sum()
-    remaining_count = max(len(ranked) - 6, 0)
-    display.loc[len(display)] = [f"Remaining {remaining_count:,}", rest]
-    display = display.sort_values("mrr", ascending=True)
-    total = float(current["mrr"].sum())
-    colors = [RED if customer == "Apex Systems" else LIGHT_BLUE for customer in display["customer"]]
-    fig = chart_base()
-    fig.add_trace(
-        go.Bar(
-            x=display["mrr"], y=display["customer"], orientation="h",
-            marker=dict(color=colors, line=dict(color="rgba(255,255,255,.12)", width=1)),
-            text=[f"{value / total:.0%}" for value in display["mrr"]], textposition="inside",
-            insidetextanchor="end", textfont=dict(color=WHITE, size=9),
-            hovertemplate="<b>%{y}</b><br>MRR $%{x:,.0f}<extra></extra>",
+    total_mrr = float(ranked["mrr"].sum())
+    top_share = float(ranked.iloc[0]["mrr"]) / total_mrr if total_mrr else 0
+    concentration_risk = top_share >= .25
+    signal_color = RED if concentration_risk else GREEN
+    visible_count = 8
+    display = ranked.head(visible_count)[["customer", "mrr"]].copy()
+    remaining_count = max(len(ranked) - visible_count, 0)
+    display.loc[len(display)] = [
+        f"Other {remaining_count:,} accounts",
+        float(ranked.iloc[visible_count:]["mrr"].sum()),
+    ]
+    colors = [
+        "#FF5C6C", "#184D87", "#3AC0EF", "#7C5CFC", "#F5A623",
+        "#FF7EB6", "#00C2A8", "#FFD166", "#33A1DD",
+    ]
+    fig = go.Figure(
+        go.Pie(
+            labels=display["customer"],
+            values=display["mrr"],
+            hole=.58,
+            sort=False,
+            direction="clockwise",
+            marker=dict(colors=colors, line=dict(color=BLACK, width=2)),
+            pull=[.025] + [0] * (len(display) - 1),
+            textinfo="none",
+            hovertemplate="<b>%{label}</b><br>MRR $%{value:,.0f}<br>%{percent}<extra></extra>",
+            domain=dict(x=[0, .57], y=[0, 1]),
         )
     )
-    fig.update_xaxes(tickprefix="$", tickformat="~s")
-    fig.update_layout(showlegend=False, margin=dict(l=8, r=10, t=18, b=28))
+    fig.add_annotation(
+        x=.232, y=.5, xref="paper", yref="paper", showarrow=False,
+        text=f"<b>{top_share:.0%}</b><br><span style='font-size:10px'>TOP 1%</span>",
+        font=dict(color=signal_color, size=20),
+    )
+    fig.update_layout(
+        height=275,
+        margin=dict(l=2, r=2, t=8, b=8),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.68)", size=9),
+        legend=dict(
+            x=.60, y=.5, xanchor="left", yanchor="middle",
+            font=dict(color="rgba(255,255,255,.66)", size=8),
+            bgcolor="rgba(0,0,0,0)", traceorder="normal",
+        ),
+        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
+    )
     return fig
 
 
@@ -237,53 +288,81 @@ def bridge_chart(opening: float, expansion: float, losses: float, closing: float
     return fig
 
 
-def account_health_chart(current: pd.DataFrame) -> go.Figure:
-    ranked = current.sort_values("previous_mrr", ascending=False).head(350).copy()
-    churned = current[current["churn_flag"].astype(bool)].nlargest(100, "previous_mrr")
-    merged = pd.concat([ranked, churned], ignore_index=True).drop_duplicates("account_id")
-    merged["growth"] = merged.apply(
-        lambda row: (row["current_mrr"] / row["previous_mrr"] - 1) if row["previous_mrr"] else 0,
-        axis=1,
-    ).clip(-1, 2)
-    merged["status"] = merged["growth"].apply(lambda value: "Growing" if value >= 0 else "Declining / churned")
-    fig = chart_base()
-    for status, color in [("Growing", GREEN), ("Declining / churned", RED)]:
-        subset = merged[merged["status"].eq(status)]
-        fig.add_trace(
-            go.Scatter(
-                x=subset["previous_mrr"], y=subset["growth"], name=status,
-                mode="markers", text=subset["customer"],
-                marker=dict(
-                    color=color,
-                    size=(subset["current_mrr"].clip(lower=10).pow(.5) * 1.2).clip(lower=6, upper=22),
-                    line=dict(color=WHITE, width=1), opacity=.86,
-                ),
-                hovertemplate="<b>%{text}</b><br>Prior MRR $%{x:,.0f}<br>Growth %{y:+.1%}<extra></extra>",
-            )
+def regime_state_chart(current: pd.DataFrame) -> go.Figure:
+    labels = ["Growth", "Stable", "Decline"]
+    state_counts = current["regime_state"].fillna("unknown").str.lower().value_counts()
+    values = [int(state_counts.get(label.lower(), 0)) for label in labels]
+    colors = [GREEN, LIGHT_BLUE, RED]
+    total = sum(values)
+
+    fig = go.Figure(
+        go.Pie(
+            labels=labels,
+            values=values,
+            sort=False,
+            direction="clockwise",
+            marker=dict(colors=colors, line=dict(color=BLACK, width=2)),
+            texttemplate="<b>%{label}</b><br>%{percent:.1%}",
+            textposition="inside",
+            insidetextorientation="horizontal",
+            textfont=dict(color=WHITE, size=11),
+            hovertemplate="<b>%{label}</b><br>%{value:,.0f} companies<br>%{percent:.1%}<extra></extra>",
+            domain=dict(x=[0, .72], y=[0, 1]),
         )
-    fig.add_hline(y=0, line_color="rgba(255,255,255,.25)", line_width=1)
-    fig.update_xaxes(title="Prior MRR", title_font=dict(size=9), tickprefix="$", tickformat="~s")
-    fig.update_yaxes(title="Growth", title_font=dict(size=9), tickformat="+.0%")
+    )
+    fig.update_layout(
+        height=275,
+        margin=dict(l=2, r=2, t=8, b=8),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.68)", size=9),
+        legend=dict(
+            x=.76, y=.5, xanchor="left", yanchor="middle",
+            font=dict(color="rgba(255,255,255,.66)", size=9),
+            bgcolor="rgba(0,0,0,0)", traceorder="normal",
+        ),
+        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
+        uniformtext_minsize=10,
+        uniformtext_mode="hide",
+    )
+    fig.add_annotation(
+        x=.76, y=.33, xref="paper", yref="paper", showarrow=False, xanchor="left",
+        text=f"<span style='color:rgba(255,255,255,.40)'>{total:,} companies</span>",
+        font=dict(size=9),
+    )
     return fig
 
 
-def risk_donut(top_share: float, is_risk: bool) -> go.Figure:
-    indicator_color = RED if is_risk else GREEN
+def industry_distribution_chart(current: pd.DataFrame) -> go.Figure:
+    industry_counts = current["industry"].fillna("Unknown").value_counts().sort_values(ascending=False)
+    colors = [
+        "#00C2FF", "#7C5CFC", "#FFB020", "#FF5C6C", "#00C2A8",
+        "#F15BB5", "#9BDE4F", "#FF8A4C", "#66A3FF", "#C8A2FF",
+    ]
     fig = go.Figure(
         go.Pie(
-            values=[top_share, 1 - top_share], labels=["Top customer", "All others"],
-            hole=.76, sort=False, direction="clockwise",
-            marker=dict(colors=[indicator_color, DARK_BLUE], line=dict(color=BLACK, width=3)),
-            textinfo="none", hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
+            labels=industry_counts.index,
+            values=industry_counts.values,
+            sort=False,
+            direction="clockwise",
+            marker=dict(colors=colors[:len(industry_counts)], line=dict(color=BLACK, width=2)),
+            textinfo="none",
+            hovertemplate="<b>%{label}</b><br>%{value:,.0f} companies<br>%{percent:.1%}<extra></extra>",
+            domain=dict(x=[0, .58], y=[0, 1]),
         )
     )
-    fig.add_annotation(
-        text=f"<b>{top_share:.0%}</b><br><span style='font-size:9px'>TOP 1</span>",
-        x=.5, y=.5, showarrow=False, font=dict(color=indicator_color, size=20),
-    )
     fig.update_layout(
-        height=148, margin=dict(l=2, r=2, t=2, b=2), showlegend=False,
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        height=275,
+        margin=dict(l=0, r=0, t=8, b=8),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.68)", size=8),
+        legend=dict(
+            x=.61, y=.5, xanchor="left", yanchor="middle",
+            font=dict(color="rgba(255,255,255,.66)", size=7),
+            bgcolor="rgba(0,0,0,0)", traceorder="normal",
+        ),
+        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
     )
     return fig
 
@@ -307,7 +386,11 @@ def agent_answer(question: str, stats: dict[str, object]) -> str:
             f"Excluding the top customer, the portfolio moved {percentage(float(stats['organic_growth']), True)}."
         )
     if any(word in q for word in ("action", "recommend", "do", "next")):
-        return "Protect the top-account renewal, investigate the three SMB churns, and set a Top-1 concentration target below 35%."
+        return (
+            f"Protect {stats['whale']}'s renewal, investigate "
+            f"{money(abs(float(stats['losses'])), True)} in gross negative movement, "
+            "and reduce Top-1 exposure below 25%."
+        )
     return "Ask about the whale, hidden churn, revenue quality, or the next CFO action."
 
 
@@ -332,12 +415,6 @@ st.markdown(
     .brand-name { font-size:1.28rem; line-height:1; font-weight:850; letter-spacing:-.045em; }
     .brand-name span { color:var(--teal); }
     .tagline { margin-top:.23rem; color:rgba(255,255,255,.52); font-size:.65rem; }
-    .top-actions { display:flex; align-items:center; gap:.55rem; }
-    .period-pill,.live-pill { padding:.4rem .62rem; border:1px solid rgba(51,161,221,.20); border-radius:999px; background:rgba(24,77,135,.16); color:rgba(255,255,255,.62); font-size:.55rem; font-weight:750; letter-spacing:.07em; }
-    .live-pill { color:var(--teal); }
-    .pulse { display:inline-block; width:6px; height:6px; margin-right:.36rem; border-radius:50%; background:var(--teal); box-shadow:0 0 0 4px rgba(58,192,239,.12); animation:pulse 1.8s infinite; }
-    @keyframes pulse { 50% { box-shadow:0 0 0 8px rgba(58,192,239,0); } }
-
     .section-line { display:flex; align-items:end; justify-content:space-between; min-height:46px; padding-top:.12rem; }
     .eyebrow { color:var(--teal); text-transform:uppercase; letter-spacing:.15em; font-size:.52rem; font-weight:850; }
     .section-title { margin:.13rem 0 0; color:var(--white); font-size:1.03rem; font-weight:780; letter-spacing:-.025em; }
@@ -358,11 +435,15 @@ st.markdown(
     .metric-detail { color:rgba(255,255,255,.44); font-size:.55rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .metric-detail b { color:var(--teal); }
 
-    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4,.st-key-agent_panel { border:1px solid rgba(51,161,221,.18); border-radius:14px; background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.66)); box-shadow:0 16px 42px rgba(0,0,0,.34); overflow:hidden; }
-    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4 { padding:.68rem .72rem .38rem; }
+    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4,.st-key-chart_panel_5,.st-key-agent_panel { border:1px solid rgba(51,161,221,.18); border-radius:14px; background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.66)); box-shadow:0 16px 42px rgba(0,0,0,.34); overflow:hidden; }
+    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4,.st-key-chart_panel_5 { padding:.68rem .72rem .38rem; }
     .chart-heading { display:flex; justify-content:space-between; align-items:center; }
     .chart-title { color:var(--white); font-size:.75rem; font-weight:750; }
     .chart-meta { color:rgba(255,255,255,.34); font-size:.49rem; letter-spacing:.06em; text-transform:uppercase; }
+    .chart-meta.risk { display:flex; align-items:center; gap:.34rem; padding:.3rem .5rem; color:var(--red); background:rgba(255,92,108,.12); border:1px solid rgba(255,92,108,.48); border-radius:999px; box-shadow:0 0 18px rgba(255,92,108,.20); font-size:.52rem; font-weight:900; letter-spacing:.09em; }
+    .chart-meta.risk:before { content:""; width:6px; height:6px; flex:0 0 6px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(255,92,108,.55); animation:risk-pulse 1.8s ease-out infinite; }
+    @keyframes risk-pulse { 70% { box-shadow:0 0 0 6px rgba(255,92,108,0); } 100% { box-shadow:0 0 0 0 rgba(255,92,108,0); } }
+    .chart-meta.positive { color:var(--green); font-weight:850; }
     div[data-testid="stPlotlyChart"] { background:transparent!important; }
 
     .st-key-agent_panel { min-height:calc(100vh - 165px); padding:.75rem; border-color:rgba(58,192,239,.31); background:linear-gradient(165deg,rgba(24,77,135,.37),rgba(0,0,0,.91) 48%); }
@@ -371,10 +452,13 @@ st.markdown(
     .agent-title { color:var(--white); font-size:.82rem; font-weight:820; }
     .agent-sub { margin-top:.1rem; color:rgba(255,255,255,.42); font-size:.54rem; }
     .agent-badge { color:var(--teal); font-size:.48rem; font-weight:850; letter-spacing:.08em; }
-    .risk-summary { display:grid; grid-template-columns:42% 58%; align-items:center; margin:.35rem 0 .4rem; }
-    .risk-copy strong { display:block; color:var(--red); font-size:.8rem; }
-    .risk-copy.positive strong { color:var(--green); }
-    .risk-copy span { display:block; margin-top:.16rem; color:rgba(255,255,255,.50); font-size:.53rem; line-height:1.38; }
+    .chat-welcome { min-height:480px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+    .chat-welcome-logo { width:170px; height:170px; display:grid; place-items:center; overflow:hidden; border-radius:50%; }
+    .chat-welcome-logo img { width:170px; height:170px; object-fit:contain; transform:scale(1.68); filter:drop-shadow(0 0 30px rgba(58,192,239,.25)); animation:whale-float 2.4s ease-in-out infinite; }
+    .chat-welcome strong { margin-top:.8rem; color:var(--white); font-size:1rem; }
+    .chat-welcome span { max-width:290px; margin-top:.3rem; color:rgba(255,255,255,.45); font-size:.62rem; line-height:1.5; }
+    .chat-history { min-height:480px; max-height:560px; padding:.7rem .15rem; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--navy) transparent; }
+    .chat-role { margin-bottom:.18rem; color:rgba(255,255,255,.38); font-size:.44rem; font-weight:850; letter-spacing:.09em; text-transform:uppercase; }
     .story-step { display:grid; grid-template-columns:22px 1fr; gap:.45rem; padding:.42rem 0; border-top:1px solid rgba(255,255,255,.08); }
     .story-step i { width:20px; height:20px; display:grid; place-items:center; color:var(--teal); background:rgba(58,192,239,.09); border:1px solid rgba(58,192,239,.17); border-radius:6px; font-size:.48rem; font-style:normal; font-weight:850; }
     .story-step.risk i { color:var(--red); border-color:rgba(255,92,108,.28); background:rgba(255,92,108,.08); }
@@ -384,9 +468,17 @@ st.markdown(
     .story-text b { color:var(--white); }
     .story-step.risk .story-text b { color:var(--red); }
     .story-step.positive .story-text b { color:var(--green); }
-    .message-user,.message-agent { padding:.45rem .52rem; font-size:.56rem; line-height:1.4; border:1px solid rgba(255,255,255,.09); }
-    .message-user { margin:.38rem 0 .25rem 18%; color:var(--white); background:var(--blue); border-radius:9px 9px 3px 9px; }
-    .message-agent { margin:.25rem 8% .25rem 0; color:rgba(255,255,255,.74); background:rgba(255,255,255,.055); border-radius:9px 9px 9px 3px; }
+    .executive-strip { padding:.58rem .68rem .62rem; border:1px solid rgba(51,161,221,.18); border-radius:13px; background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.72)); box-shadow:0 14px 38px rgba(0,0,0,.30); }
+    .executive-strip-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
+    .executive-strip-title { color:var(--white); font-size:.68rem; font-weight:800; }
+    .executive-strip-meta { color:var(--teal); font-size:.46rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+    .inference-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.4rem; }
+    .inference-grid .story-step { min-height:58px; padding:.42rem; border:1px solid rgba(255,255,255,.08); border-radius:9px; background:rgba(255,255,255,.025); }
+    .inference-grid .story-label { font-size:.43rem; }
+    .inference-grid .story-text { font-size:.52rem; line-height:1.32; }
+    .message-user,.message-agent { padding:.62rem .7rem; font-size:.62rem; line-height:1.48; border:1px solid rgba(255,255,255,.09); }
+    .message-user { margin:.5rem 0 .38rem 18%; color:var(--white); background:var(--blue); border-radius:11px 11px 3px 11px; }
+    .message-agent { margin:.38rem 10% .38rem 0; color:rgba(255,255,255,.78); background:rgba(255,255,255,.055); border-radius:11px 11px 11px 3px; }
     .st-key-agent_panel [data-testid="stForm"] { border:0; padding:0; margin-top:auto; }
     .st-key-agent_panel .stTextInput input { min-height:32px; color:var(--white)!important; background:rgba(255,255,255,.055)!important; border:1px solid rgba(255,255,255,.14)!important; border-radius:8px!important; font-size:.58rem!important; }
     .st-key-agent_panel .stTextInput input::placeholder { color:rgba(255,255,255,.34)!important; }
@@ -403,9 +495,10 @@ st.markdown(
 
     @media(max-width:900px) {
       .block-container { padding:.6rem!important; }
-      .tagline,.period-pill { display:none; }
+      .tagline { display:none; }
       [data-testid="stHorizontalBlock"] { flex-wrap:wrap; }
       [data-testid="stHorizontalBlock"]>[data-testid="stColumn"] { min-width:calc(50% - .5rem); }
+      .inference-grid { grid-template-columns:1fr 1fr; }
       .st-key-agent_panel { min-height:auto; }
       .st-key-agent_panel>div[data-testid="stVerticalBlock"] { min-height:auto; }
     }
@@ -415,8 +508,8 @@ st.markdown(
 )
 
 
-if not OUTPUT_PATH.exists():
-    st.error("The real dataset was not found at data/output.csv.")
+if not OUTPUT_PATH.exists() or not CONCENTRATION_PATH.exists():
+    st.error("Required input data was not found in the data directory.")
     st.stop()
 
 loader = st.empty()
@@ -427,7 +520,11 @@ loader.markdown(
     "<div class='loader-line'><i></i></div></div>",
     unsafe_allow_html=True,
 )
-monthly, current = load_real_data(OUTPUT_PATH)
+monthly, current = load_real_data(
+    OUTPUT_PATH,
+    CONCENTRATION_PATH,
+    CONCENTRATION_PATH.stat().st_mtime_ns,
+)
 loader.empty()
 if monthly.empty or current.empty:
     st.error("data/output.csv did not contain usable monthly account records.")
@@ -451,7 +548,6 @@ losses = float(latest_month["losses"])
 expansion = float(latest_month["expansion"])
 hhi = float(((current["mrr"] / current_total) ** 2).sum()) if current_total else 0
 customer_count = int(current["account_id"].nunique())
-period_label = str(latest_month["month_label"])
 concentration_risk = top_share >= .25
 risk_level = "High concentration risk" if concentration_risk else "Low concentration risk"
 story_class = "risk" if concentration_risk else "positive"
@@ -460,6 +556,22 @@ real_story = (
     if concentration_risk
     else f"Revenue is diversified across {customer_count:,} accounts; churn is the larger near-term risk."
 )
+story_markup = (
+    f"<div class='story-step positive'><i>1</i><div><div class='story-label'>Baseline</div>"
+    f"<div class='story-text'>MRR reached <b>{money(current_total, True)}</b>, up <b>{percentage(growth, True)}</b> month over month.</div></div></div>"
+    f"<div class='story-step {story_class}'><i>2</i><div><div class='story-label'>Largest account</div>"
+    f"<div class='story-text'><b>{html.escape(whale)}</b> moved {money(whale_mrr - previous_whale, True, True)} and now represents <b>{top_share:.1%}</b> of MRR.</div></div></div>"
+    f"<div class='story-step risk'><i>3</i><div><div class='story-label'>Hidden losses</div>"
+    f"<div class='story-text'><b>{money(abs(losses), True)} gross negative movement</b> across the portfolio; {churned} full-account churns.</div></div></div>"
+    f"<div class='story-step {story_class}'><i>4</i><div><div class='story-label'>The real story</div>"
+    f"<div class='story-text'><b>{real_story}</b></div></div></div>"
+)
+
+# Fail visibly if the CFO headline and account-level source ever stop reconciling.
+account_total = float(current["mrr"].sum())
+if abs(account_total - current_total) > max(.01, current_total * 1e-10):
+    st.error("Account-level MRR does not reconcile to the monthly portfolio total.")
+    st.stop()
 
 stats: dict[str, object] = {
     "whale": whale, "whale_mrr": whale_mrr, "top_share": top_share,
@@ -474,23 +586,17 @@ st.markdown(
         <div><div class="brand-name">Whale<span>Watch</span></div>
         <div class="tagline">Don't just track revenue. Track the whales driving it.</div></div>
       </div>
-      <div class="top-actions"><div class="period-pill">CFO COMMAND CENTER · {period_label.upper()}</div>
-      <div class="live-pill"><span class="pulse"></span>LIVE · {datetime.now().strftime('%I:%M %p')}</div></div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-title_col, selector_col = st.columns([5, 1.35])
-with title_col:
-    st.markdown(
-        "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
-        "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
-        f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/output.csv</div></div>",
-        unsafe_allow_html=True,
-    )
-with selector_col:
-    st.selectbox("Reporting period", [period_label], label_visibility="collapsed")
+st.markdown(
+    "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
+    "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
+    f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/output.csv</div></div>",
+    unsafe_allow_html=True,
+)
 
 k1, k2, k3, k4, k5, k6 = st.columns(6)
 with k1:
@@ -518,57 +624,75 @@ with charts_col:
             st.plotly_chart(revenue_quality_chart(monthly), width="stretch", config={"displayModeBar": False})
     with top_right:
         with st.container(key="chart_panel_2"):
-            st.markdown("<div class='chart-heading'><div class='chart-title'>Customer concentration</div><div class='chart-meta'>Latest MRR share</div></div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='chart-heading'><div class='chart-title'>Customer concentration</div>"
+                f"<div class='chart-meta {'risk' if concentration_risk else 'positive'}'>{risk_level}</div></div>",
+                unsafe_allow_html=True,
+            )
             st.plotly_chart(concentration_chart(current), width="stretch", config={"displayModeBar": False})
 
-    bottom_left, bottom_right = st.columns(2)
+    bottom_left, bottom_middle, bottom_right = st.columns(3)
     with bottom_left:
         with st.container(key="chart_panel_3"):
             st.markdown("<div class='chart-heading'><div class='chart-title'>MRR movement bridge</div><div class='chart-meta'>Month over month</div></div>", unsafe_allow_html=True)
             st.plotly_chart(bridge_chart(previous_total, expansion, losses, current_total), width="stretch", config={"displayModeBar": False})
-    with bottom_right:
+    with bottom_middle:
         with st.container(key="chart_panel_4"):
-            st.markdown("<div class='chart-heading'><div class='chart-title'>Customer growth map</div><div class='chart-meta'>Size × momentum</div></div>", unsafe_allow_html=True)
-            st.plotly_chart(account_health_chart(current), width="stretch", config={"displayModeBar": False})
+            st.markdown("<div class='chart-heading'><div class='chart-title'>Company regime state</div><div class='chart-meta'>Latest portfolio</div></div>", unsafe_allow_html=True)
+            st.plotly_chart(regime_state_chart(current), width="stretch", config={"displayModeBar": False})
+    with bottom_right:
+        with st.container(key="chart_panel_5"):
+            st.markdown("<div class='chart-heading'><div class='chart-title'>Industry distribution</div><div class='chart-meta'>Latest portfolio</div></div>", unsafe_allow_html=True)
+            st.plotly_chart(industry_distribution_chart(current), width="stretch", config={"displayModeBar": False})
+
+    st.markdown(
+        "<div class='executive-strip'><div class='executive-strip-head'>"
+        "<div class='executive-strip-title'>Executive concentration readout</div>"
+        "<div class='executive-strip-meta'>Verified against latest account records</div></div>"
+        f"<div class='inference-grid'>{story_markup}</div></div>",
+        unsafe_allow_html=True,
+    )
 
 with agent_col:
     with st.container(key="agent_panel"):
         st.markdown(
-            "<div class='agent-head'><div><div class='agent-title'>Concentration Risk Agent</div>"
-            "<div class='agent-sub'>The story behind the headline</div></div>"
+            "<div class='agent-head'><div><div class='agent-title'>Whale Agent</div>"
+            "<div class='agent-sub'>Ask your revenue data</div></div>"
             "<div class='agent-badge'>● ONLINE</div></div>", unsafe_allow_html=True,
         )
-        donut_col, risk_copy_col = st.columns([1, 1.35])
-        with donut_col:
-            st.plotly_chart(risk_donut(top_share, concentration_risk), width="stretch", config={"displayModeBar": False})
-        with risk_copy_col:
-            st.markdown(
-                f"<div class='risk-copy {'risk' if concentration_risk else 'positive'}'><strong>{risk_level}</strong>"
-                f"<span>{html.escape(whale)} controls {top_share:.0%} of recurring revenue. "
-                f"That is {money(whale_mrr, True)} of monthly exposure.</span></div>", unsafe_allow_html=True,
-            )
-        st.markdown(
-            f"<div class='story-step positive'><i>1</i><div><div class='story-label'>Baseline</div>"
-            f"<div class='story-text'>MRR reached <b>{money(current_total, True)}</b>, up <b>{percentage(growth, True)}</b> month over month.</div></div></div>"
-            f"<div class='story-step {story_class}'><i>2</i><div><div class='story-label'>Largest account</div>"
-            f"<div class='story-text'><b>{html.escape(whale)}</b> moved {money(whale_mrr - previous_whale, True, True)} and now represents <b>{top_share:.1%}</b> of MRR.</div></div></div>"
-            f"<div class='story-step risk'><i>3</i><div><div class='story-label'>Hidden losses</div>"
-            f"<div class='story-text'><b>{money(abs(losses), True)} gross negative movement</b> across the portfolio; {churned} full-account churns.</div></div></div>"
-            f"<div class='story-step {story_class}'><i>4</i><div><div class='story-label'>The real story</div>"
-            f"<div class='story-text'><b>{real_story}</b></div></div></div>",
-            unsafe_allow_html=True,
-        )
+        if "whale_chat_messages_v2" not in st.session_state:
+            st.session_state.whale_chat_messages_v2 = []
 
-        if "agent_messages" not in st.session_state:
-            st.session_state.agent_messages = [{"role": "agent", "content": "Ask me about the whale, hidden churn, or the next CFO action."}]
-        for message in st.session_state.agent_messages[-2:]:
-            css_class = "message-user" if message["role"] == "user" else "message-agent"
-            st.markdown(f"<div class='{css_class}'>{html.escape(message['content'])}</div>", unsafe_allow_html=True)
+        messages = st.session_state.whale_chat_messages_v2
+        if not messages:
+            st.markdown(
+                f"<div class='chat-welcome'><div class='chat-welcome-logo'>"
+                f"<img src='{image_data_uri(LOGO_PATH)}' alt='WhaleWatch logo'></div>"
+                "<strong>Ask Mr. Whale</strong>"
+                "<span>Ask about concentration, the largest account, hidden losses, "
+                "revenue growth, or the next CFO action.</span></div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            chat_bubbles = []
+            for message in messages[-8:]:
+                is_user = message["role"] == "user"
+                css_class = "message-user" if is_user else "message-agent"
+                role_label = "YOU" if is_user else "WHALE AGENT"
+                chat_bubbles.append(
+                    f"<div class='{css_class}'><div class='chat-role'>{role_label}</div>"
+                    f"{html.escape(message['content'])}</div>"
+                )
+            st.markdown(
+                "<div class='chat-history'>" + "".join(chat_bubbles) + "</div>",
+                unsafe_allow_html=True,
+            )
+
         with st.form("agent_form", clear_on_submit=True):
-            question = st.text_input("Ask the agent", placeholder="Ask what makes growth fragile…", label_visibility="collapsed")
-            submitted = st.form_submit_button("Ask Concentration Agent", use_container_width=True)
+            question = st.text_input("Ask the agent", placeholder="Ask about revenue concentration…", label_visibility="collapsed")
+            submitted = st.form_submit_button("Ask Whale Agent", use_container_width=True)
         if submitted and question.strip():
-            st.session_state.agent_messages.append({"role": "user", "content": question.strip()})
-            st.session_state.agent_messages.append({"role": "agent", "content": agent_answer(question, stats)})
+            st.session_state.whale_chat_messages_v2.append({"role": "user", "content": question.strip()})
+            st.session_state.whale_chat_messages_v2.append({"role": "agent", "content": agent_answer(question, stats)})
             st.rerun()
-        st.caption("Live portfolio analysis from data/output.csv")
+        st.caption("Answers calculated from data/output.csv")
