@@ -96,3 +96,5 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+data/input_data.csv
