@@ -98,6 +98,9 @@ ehthumbs.db
 Thumbs.db
 
 data/input_data.csv
+data/input.csv
+data/output.csv
+data/concentration_overrides.csv
 
 # SQLite memory stores generated at runtime
 *.db
