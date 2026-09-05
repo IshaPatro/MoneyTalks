@@ -1,0 +1,497 @@
+period,account_code,account_name,account_type,amount_usd,txn_count
+2023-01,4000,Subscription Revenue,revenue,667238.93,506
+2023-01,4010,Usage Revenue,revenue,17952.98,112
+2023-01,5000,Hosting & Infrastructure,cogs,-116830.57,4
+2023-01,5010,Payment Processing,cogs,-16587.91,1
+2023-01,5020,Customer Support,cogs,-7855.87,1
+2023-01,6000,Payroll,opex,-383189.86,2
+2023-01,6010,Contractors,opex,-88233.82,4
+2023-01,6020,Software & Tools,opex,-42127.72,43
+2023-01,6030,Marketing,opex,-137852.08,8
+2023-01,6050,Travel & Events,opex,-150287.0,30
+2023-01,6060,Facilities,opex,-73307.13,13
+2023-02,4000,Subscription Revenue,revenue,674442.33,524
+2023-02,4010,Usage Revenue,revenue,20741.27,111
+2023-02,4020,Professional Services,revenue,72373.26,5
+2023-02,4090,Credits & Refunds,revenue,-31.97,2
+2023-02,5000,Hosting & Infrastructure,cogs,-124373.83,4
+2023-02,5010,Payment Processing,cogs,-17556.07,1
+2023-02,5020,Customer Support,cogs,-6888.65,1
+2023-02,6000,Payroll,opex,-381959.9,2
+2023-02,6010,Contractors,opex,-113467.85,4
+2023-02,6020,Software & Tools,opex,-47173.44,32
+2023-02,6030,Marketing,opex,-153644.05,12
+2023-02,6040,Legal & Professional,opex,-147524.65,3
+2023-02,6050,Travel & Events,opex,-179429.25,27
+2023-02,6060,Facilities,opex,-67690.75,15
+2023-03,4000,Subscription Revenue,revenue,679079.22,535
+2023-03,4010,Usage Revenue,revenue,22442.02,113
+2023-03,4020,Professional Services,revenue,12259.64,2
+2023-03,4090,Credits & Refunds,revenue,-403.26,8
+2023-03,5000,Hosting & Infrastructure,cogs,-116393.26,4
+2023-03,5010,Payment Processing,cogs,-16594.42,1
+2023-03,5020,Customer Support,cogs,-7092.72,1
+2023-03,6000,Payroll,opex,-571304.72,3
+2023-03,6010,Contractors,opex,-75268.91,3
+2023-03,6020,Software & Tools,opex,-68271.8,41
+2023-03,6030,Marketing,opex,-201827.66,9
+2023-03,6040,Legal & Professional,opex,-79627.4,3
+2023-03,6050,Travel & Events,opex,-71601.04,38
+2023-03,6060,Facilities,opex,-74528.29,15
+2023-04,4000,Subscription Revenue,revenue,707775.95,552
+2023-04,4010,Usage Revenue,revenue,20643.37,113
+2023-04,4020,Professional Services,revenue,58842.08,3
+2023-04,4090,Credits & Refunds,revenue,-255.82,4
+2023-04,5000,Hosting & Infrastructure,cogs,-123409.27,4
+2023-04,5010,Payment Processing,cogs,-21327.55,1
+2023-04,5020,Customer Support,cogs,-6708.59,1
+2023-04,6000,Payroll,opex,-389292.43,2
+2023-04,6010,Contractors,opex,-53768.74,2
+2023-04,6020,Software & Tools,opex,-55701.6,39
+2023-04,6030,Marketing,opex,-155908.19,8
+2023-04,6040,Legal & Professional,opex,-72678.28,2
+2023-04,6050,Travel & Events,opex,-202819.48,31
+2023-04,6060,Facilities,opex,-69110.9,16
+2023-05,4000,Subscription Revenue,revenue,745518.1,573
+2023-05,4010,Usage Revenue,revenue,15505.32,111
+2023-05,4020,Professional Services,revenue,117882.84,4
+2023-05,4090,Credits & Refunds,revenue,-700.01,5
+2023-05,5000,Hosting & Infrastructure,cogs,-128503.39,4
+2023-05,5010,Payment Processing,cogs,-21137.9,1
+2023-05,5020,Customer Support,cogs,-7167.54,1
+2023-05,6000,Payroll,opex,-391103.56,2
+2023-05,6010,Contractors,opex,-165274.4,5
+2023-05,6020,Software & Tools,opex,-84398.66,56
+2023-05,6030,Marketing,opex,-147255.17,10
+2023-05,6040,Legal & Professional,opex,-93505.17,2
+2023-05,6050,Travel & Events,opex,-57943.2,31
+2023-05,6060,Facilities,opex,-70969.84,16
+2023-06,4000,Subscription Revenue,revenue,767978.65,587
+2023-06,4010,Usage Revenue,revenue,31226.31,97
+2023-06,4020,Professional Services,revenue,17304.09,2
+2023-06,5000,Hosting & Infrastructure,cogs,-465603.69,5
+2023-06,5010,Payment Processing,cogs,-18705.86,1
+2023-06,5020,Customer Support,cogs,-7781.67,1
+2023-06,6000,Payroll,opex,-392700.48,2
+2023-06,6010,Contractors,opex,-41224.32,1
+2023-06,6020,Software & Tools,opex,-248202.36,45
+2023-06,6030,Marketing,opex,-218825.1,13
+2023-06,6040,Legal & Professional,opex,-10638.01,3
+2023-06,6050,Travel & Events,opex,-131807.48,40
+2023-06,6060,Facilities,opex,-85338.61,21
+2023-07,4000,Subscription Revenue,revenue,777395.07,587
+2023-07,4010,Usage Revenue,revenue,24476.03,123
+2023-07,4020,Professional Services,revenue,63857.86,3
+2023-07,4090,Credits & Refunds,revenue,-2157.46,5
+2023-07,5000,Hosting & Infrastructure,cogs,-135231.0,4
+2023-07,5010,Payment Processing,cogs,-19329.54,1
+2023-07,5020,Customer Support,cogs,-8336.94,1
+2023-07,6000,Payroll,opex,-399057.31,2
+2023-07,6010,Contractors,opex,-83544.21,3
+2023-07,6020,Software & Tools,opex,-47317.52,30
+2023-07,6030,Marketing,opex,-140884.47,13
+2023-07,6040,Legal & Professional,opex,22854.36,3
+2023-07,6050,Travel & Events,opex,-80697.03,23
+2023-07,6060,Facilities,opex,-73648.67,17
+2023-08,4000,Subscription Revenue,revenue,816902.82,595
+2023-08,4010,Usage Revenue,revenue,29366.25,117
+2023-08,4020,Professional Services,revenue,18894.39,2
+2023-08,4090,Credits & Refunds,revenue,-361.46,3
+2023-08,5000,Hosting & Infrastructure,cogs,-135560.83,4
+2023-08,5010,Payment Processing,cogs,-19771.03,1
+2023-08,5020,Customer Support,cogs,-7173.26,1
+2023-08,6000,Payroll,opex,-401222.01,2
+2023-08,6010,Contractors,opex,-43781.45,1
+2023-08,6020,Software & Tools,opex,-54142.65,33
+2023-08,6030,Marketing,opex,-126205.29,3
+2023-08,6040,Legal & Professional,opex,-47323.18,3
+2023-08,6050,Travel & Events,opex,-200060.06,30
+2023-08,6060,Facilities,opex,-64441.54,14
+2023-09,4000,Subscription Revenue,revenue,846190.99,610
+2023-09,4010,Usage Revenue,revenue,35118.3,139
+2023-09,4020,Professional Services,revenue,64072.34,6
+2023-09,5000,Hosting & Infrastructure,cogs,-137527.86,4
+2023-09,5010,Payment Processing,cogs,-22299.56,1
+2023-09,5020,Customer Support,cogs,-8338.98,1
+2023-09,6000,Payroll,opex,-611782.5,3
+2023-09,6010,Contractors,opex,-58599.62,2
+2023-09,6020,Software & Tools,opex,-62818.68,38
+2023-09,6030,Marketing,opex,-226584.23,9
+2023-09,6040,Legal & Professional,opex,-69936.71,3
+2023-09,6050,Travel & Events,opex,-149546.88,30
+2023-09,6060,Facilities,opex,-80406.71,21
+2023-10,4000,Subscription Revenue,revenue,873698.96,620
+2023-10,4010,Usage Revenue,revenue,40173.36,127
+2023-10,4020,Professional Services,revenue,5838.65,2
+2023-10,4090,Credits & Refunds,revenue,-153.27,1
+2023-10,5000,Hosting & Infrastructure,cogs,-128897.81,4
+2023-10,5010,Payment Processing,cogs,-23034.76,1
+2023-10,5020,Customer Support,cogs,-7676.79,1
+2023-10,6000,Payroll,opex,-406895.05,2
+2023-10,6010,Contractors,opex,-77299.82,2
+2023-10,6020,Software & Tools,opex,-63315.99,49
+2023-10,6030,Marketing,opex,-164209.19,9
+2023-10,6040,Legal & Professional,opex,40525.15,2
+2023-10,6050,Travel & Events,opex,-95676.35,26
+2023-10,6060,Facilities,opex,-66963.44,11
+2023-11,4000,Subscription Revenue,revenue,896140.13,640
+2023-11,4010,Usage Revenue,revenue,36976.58,137
+2023-11,4020,Professional Services,revenue,56919.87,9
+2023-11,4090,Credits & Refunds,revenue,-957.61,4
+2023-11,5000,Hosting & Infrastructure,cogs,-133286.43,4
+2023-11,5010,Payment Processing,cogs,-23420.1,1
+2023-11,5020,Customer Support,cogs,-7605.67,1
+2023-11,6000,Payroll,opex,-418092.15,2
+2023-11,6010,Contractors,opex,-126766.97,3
+2023-11,6020,Software & Tools,opex,-81178.3,49
+2023-11,6030,Marketing,opex,-191075.89,9
+2023-11,6040,Legal & Professional,opex,50580.0,1
+2023-11,6050,Travel & Events,opex,-179477.05,35
+2023-11,6060,Facilities,opex,-76827.44,17
+2023-12,4000,Subscription Revenue,revenue,932356.27,652
+2023-12,4010,Usage Revenue,revenue,29433.12,144
+2023-12,4020,Professional Services,revenue,120667.31,4
+2023-12,4090,Credits & Refunds,revenue,-1708.89,6
+2023-12,5000,Hosting & Infrastructure,cogs,-142547.64,4
+2023-12,5010,Payment Processing,cogs,-27696.6,1
+2023-12,5020,Customer Support,cogs,-7812.18,1
+2023-12,6000,Payroll,opex,-421611.77,2
+2023-12,6010,Contractors,opex,-48353.08,1
+2023-12,6020,Software & Tools,opex,-49129.63,41
+2023-12,6030,Marketing,opex,-249586.17,15
+2023-12,6040,Legal & Professional,opex,-90824.24,1
+2023-12,6050,Travel & Events,opex,-194296.89,33
+2023-12,6060,Facilities,opex,-75731.6,25
+2024-01,4000,Subscription Revenue,revenue,957151.16,675
+2024-01,4010,Usage Revenue,revenue,40477.03,171
+2024-01,4020,Professional Services,revenue,13448.61,2
+2024-01,4090,Credits & Refunds,revenue,-172.83,2
+2024-01,5000,Hosting & Infrastructure,cogs,-142305.58,4
+2024-01,5010,Payment Processing,cogs,-23640.57,1
+2024-01,5020,Customer Support,cogs,-7820.99,1
+2024-01,6000,Payroll,opex,-422026.27,2
+2024-01,6010,Contractors,opex,-91336.56,3
+2024-01,6020,Software & Tools,opex,-48761.13,37
+2024-01,6030,Marketing,opex,-154375.29,7
+2024-01,6040,Legal & Professional,opex,16879.45,4
+2024-01,6050,Travel & Events,opex,-166069.46,34
+2024-01,6060,Facilities,opex,-74215.36,22
+2024-02,4000,Subscription Revenue,revenue,908074.99,695
+2024-02,4010,Usage Revenue,revenue,24962.95,149
+2024-02,4020,Professional Services,revenue,17337.2,3
+2024-02,4090,Credits & Refunds,revenue,-1385.45,4
+2024-02,5000,Hosting & Infrastructure,cogs,-162385.0,4
+2024-02,5010,Payment Processing,cogs,-23811.49,1
+2024-02,5020,Customer Support,cogs,-8112.01,1
+2024-02,6000,Payroll,opex,-425947.81,2
+2024-02,6010,Contractors,opex,-111614.08,4
+2024-02,6020,Software & Tools,opex,-53777.88,40
+2024-02,6030,Marketing,opex,-146787.47,15
+2024-02,6040,Legal & Professional,opex,-191175.87,5
+2024-02,6050,Travel & Events,opex,-116724.67,29
+2024-02,6060,Facilities,opex,-79137.68,21
+2024-03,4000,Subscription Revenue,revenue,937646.09,711
+2024-03,4010,Usage Revenue,revenue,46125.21,157
+2024-03,4020,Professional Services,revenue,121099.86,6
+2024-03,4090,Credits & Refunds,revenue,-2957.03,8
+2024-03,5000,Hosting & Infrastructure,cogs,-152252.05,4
+2024-03,5010,Payment Processing,cogs,-28032.23,1
+2024-03,5020,Customer Support,cogs,-8641.95,1
+2024-03,6000,Payroll,opex,-651366.89,3
+2024-03,6010,Contractors,opex,-83234.69,2
+2024-03,6020,Software & Tools,opex,-64958.65,37
+2024-03,6030,Marketing,opex,-258206.74,12
+2024-03,6040,Legal & Professional,opex,-237464.21,7
+2024-03,6050,Travel & Events,opex,-181768.27,29
+2024-03,6060,Facilities,opex,-87934.0,19
+2024-04,4000,Subscription Revenue,revenue,1036615.32,713
+2024-04,4010,Usage Revenue,revenue,36525.53,145
+2024-04,4020,Professional Services,revenue,45987.72,2
+2024-04,4090,Credits & Refunds,revenue,-409.93,4
+2024-04,5000,Hosting & Infrastructure,cogs,-150036.29,4
+2024-04,5010,Payment Processing,cogs,-24138.76,1
+2024-04,5020,Customer Support,cogs,-7927.38,1
+2024-04,6000,Payroll,opex,-435669.67,2
+2024-04,6010,Contractors,opex,-118248.46,3
+2024-04,6020,Software & Tools,opex,-47574.66,36
+2024-04,6030,Marketing,opex,-156841.39,7
+2024-04,6040,Legal & Professional,opex,66411.82,2
+2024-04,6050,Travel & Events,opex,-110116.06,35
+2024-04,6060,Facilities,opex,-69135.21,15
+2024-05,4000,Subscription Revenue,revenue,1041162.02,730
+2024-05,4010,Usage Revenue,revenue,34126.47,162
+2024-05,4020,Professional Services,revenue,13249.06,2
+2024-05,4090,Credits & Refunds,revenue,-2862.25,8
+2024-05,5000,Hosting & Infrastructure,cogs,-167616.76,4
+2024-05,5010,Payment Processing,cogs,-24321.7,1
+2024-05,5020,Customer Support,cogs,-8783.06,1
+2024-05,6000,Payroll,opex,-436368.92,2
+2024-05,6010,Contractors,opex,-123685.47,4
+2024-05,6020,Software & Tools,opex,-61131.66,42
+2024-05,6030,Marketing,opex,-152327.16,10
+2024-05,6040,Legal & Professional,opex,-91903.74,3
+2024-05,6050,Travel & Events,opex,-206124.69,36
+2024-05,6060,Facilities,opex,-72308.39,19
+2024-06,4000,Subscription Revenue,revenue,1034984.65,734
+2024-06,4010,Usage Revenue,revenue,38879.85,166
+2024-06,4020,Professional Services,revenue,16250.46,2
+2024-06,4090,Credits & Refunds,revenue,-1078.49,8
+2024-06,5000,Hosting & Infrastructure,cogs,-499602.54,5
+2024-06,5010,Payment Processing,cogs,-27618.08,1
+2024-06,5020,Customer Support,cogs,-7588.09,1
+2024-06,6000,Payroll,opex,-435190.03,2
+2024-06,6010,Contractors,opex,-52635.8,1
+2024-06,6020,Software & Tools,opex,-257264.93,42
+2024-06,6030,Marketing,opex,-228455.99,10
+2024-06,6040,Legal & Professional,opex,-78026.86,3
+2024-06,6050,Travel & Events,opex,-62188.14,31
+2024-06,6060,Facilities,opex,-83731.83,16
+2024-07,4000,Subscription Revenue,revenue,1048270.36,737
+2024-07,4010,Usage Revenue,revenue,45952.53,164
+2024-07,4020,Professional Services,revenue,15566.05,2
+2024-07,4090,Credits & Refunds,revenue,-299.46,4
+2024-07,5000,Hosting & Infrastructure,cogs,-171530.44,4
+2024-07,5010,Payment Processing,cogs,-24867.68,1
+2024-07,5020,Customer Support,cogs,-8761.91,1
+2024-07,6000,Payroll,opex,-439445.18,2
+2024-07,6010,Contractors,opex,-137687.73,3
+2024-07,6020,Software & Tools,opex,-40990.4,33
+2024-07,6030,Marketing,opex,-146087.2,11
+2024-07,6040,Legal & Professional,opex,39919.73,1
+2024-07,6050,Travel & Events,opex,-90172.76,28
+2024-07,6060,Facilities,opex,-69186.85,22
+2024-08,4000,Subscription Revenue,revenue,1079222.13,740
+2024-08,4010,Usage Revenue,revenue,40030.53,169
+2024-08,4020,Professional Services,revenue,5654.55,1
+2024-08,4090,Credits & Refunds,revenue,-258.46,2
+2024-08,5000,Hosting & Infrastructure,cogs,-172666.15,4
+2024-08,5010,Payment Processing,cogs,-27561.21,1
+2024-08,5020,Customer Support,cogs,-8060.68,1
+2024-08,6000,Payroll,opex,-674802.41,3
+2024-08,6010,Contractors,opex,-68602.91,2
+2024-08,6020,Software & Tools,opex,-47039.3,48
+2024-08,6030,Marketing,opex,-142524.39,10
+2024-08,6040,Legal & Professional,opex,-24030.45,2
+2024-08,6050,Travel & Events,opex,-187643.86,26
+2024-08,6060,Facilities,opex,-67241.82,15
+2024-09,4000,Subscription Revenue,revenue,1098254.82,748
+2024-09,4010,Usage Revenue,revenue,54154.11,179
+2024-09,4020,Professional Services,revenue,31386.76,3
+2024-09,4090,Credits & Refunds,revenue,-2391.15,5
+2024-09,5000,Hosting & Infrastructure,cogs,-164147.64,4
+2024-09,5010,Payment Processing,cogs,-29128.41,1
+2024-09,5020,Customer Support,cogs,-9454.83,1
+2024-09,6000,Payroll,opex,-462144.88,2
+2024-09,6010,Contractors,opex,-117276.28,4
+2024-09,6020,Software & Tools,opex,-69181.44,46
+2024-09,6030,Marketing,opex,-250474.16,11
+2024-09,6040,Legal & Professional,opex,-132303.22,4
+2024-09,6050,Travel & Events,opex,-330532.7,41
+2024-09,6060,Facilities,opex,-75837.54,12
+2024-10,4000,Subscription Revenue,revenue,1144933.95,770
+2024-10,4010,Usage Revenue,revenue,41863.39,160
+2024-10,4020,Professional Services,revenue,123145.43,5
+2024-10,4090,Credits & Refunds,revenue,-785.25,5
+2024-10,5000,Hosting & Infrastructure,cogs,-171224.04,4
+2024-10,5010,Payment Processing,cogs,-31087.11,1
+2024-10,5020,Customer Support,cogs,-9230.8,1
+2024-10,6000,Payroll,opex,-458090.42,2
+2024-10,6010,Contractors,opex,-47699.19,1
+2024-10,6020,Software & Tools,opex,-66050.21,45
+2024-10,6030,Marketing,opex,-191631.24,10
+2024-10,6040,Legal & Professional,opex,-8875.2,2
+2024-10,6050,Travel & Events,opex,-97603.02,33
+2024-10,6060,Facilities,opex,-79151.48,22
+2024-11,4000,Subscription Revenue,revenue,1150112.44,782
+2024-11,4010,Usage Revenue,revenue,56263.82,185
+2024-11,4020,Professional Services,revenue,63606.01,5
+2024-11,4090,Credits & Refunds,revenue,-2253.37,8
+2024-11,5000,Hosting & Infrastructure,cogs,-177557.91,4
+2024-11,5010,Payment Processing,cogs,-32450.4,1
+2024-11,5020,Customer Support,cogs,-8587.84,1
+2024-11,6000,Payroll,opex,-452682.97,2
+2024-11,6010,Contractors,opex,-68161.61,2
+2024-11,6020,Software & Tools,opex,-76151.64,47
+2024-11,6030,Marketing,opex,-201110.65,15
+2024-11,6040,Legal & Professional,opex,-48459.26,4
+2024-11,6050,Travel & Events,opex,-344935.37,32
+2024-11,6060,Facilities,opex,-69603.28,13
+2024-12,4000,Subscription Revenue,revenue,1209794.52,798
+2024-12,4010,Usage Revenue,revenue,43492.06,168
+2024-12,4020,Professional Services,revenue,66390.01,5
+2024-12,4090,Credits & Refunds,revenue,-1216.57,5
+2024-12,5000,Hosting & Infrastructure,cogs,-174813.28,4
+2024-12,5010,Payment Processing,cogs,-34679.12,1
+2024-12,5020,Customer Support,cogs,-9305.7,1
+2024-12,6000,Payroll,opex,-469678.05,2
+2024-12,6010,Contractors,opex,-72281.65,2
+2024-12,6020,Software & Tools,opex,-57768.76,42
+2024-12,6030,Marketing,opex,-221587.98,14
+2024-12,6040,Legal & Professional,opex,13291.52,3
+2024-12,6050,Travel & Events,opex,-239019.03,27
+2024-12,6060,Facilities,opex,-73380.26,19
+2025-01,4000,Subscription Revenue,revenue,1291805.12,822
+2025-01,4010,Usage Revenue,revenue,36434.58,187
+2025-01,4020,Professional Services,revenue,14495.75,2
+2025-01,4090,Credits & Refunds,revenue,-2626.99,7
+2025-01,5000,Hosting & Infrastructure,cogs,-186621.95,4
+2025-01,5010,Payment Processing,cogs,-32892.21,1
+2025-01,5020,Customer Support,cogs,-9309.34,1
+2025-01,6000,Payroll,opex,-705697.4,3
+2025-01,6010,Contractors,opex,-72847.3,2
+2025-01,6020,Software & Tools,opex,-49630.5,34
+2025-01,6030,Marketing,opex,-164851.68,12
+2025-01,6040,Legal & Professional,opex,-11146.6,1
+2025-01,6050,Travel & Events,opex,-103854.18,24
+2025-01,6060,Facilities,opex,-71800.15,13
+2025-02,4000,Subscription Revenue,revenue,1392049.37,830
+2025-02,4010,Usage Revenue,revenue,30122.11,176
+2025-02,4020,Professional Services,revenue,88060.23,6
+2025-02,4090,Credits & Refunds,revenue,-739.18,4
+2025-02,5000,Hosting & Infrastructure,cogs,-177269.31,4
+2025-02,5010,Payment Processing,cogs,-38211.58,1
+2025-02,5020,Customer Support,cogs,-9410.49,1
+2025-02,6000,Payroll,opex,-473868.9,2
+2025-02,6010,Contractors,opex,-143284.26,4
+2025-02,6020,Software & Tools,opex,-62515.43,46
+2025-02,6030,Marketing,opex,-174034.68,8
+2025-02,6040,Legal & Professional,opex,-107354.68,3
+2025-02,6050,Travel & Events,opex,-133808.46,41
+2025-02,6060,Facilities,opex,-73549.42,12
+2025-03,4000,Subscription Revenue,revenue,1512930.86,857
+2025-03,4010,Usage Revenue,revenue,38923.34,183
+2025-03,4020,Professional Services,revenue,54332.33,3
+2025-03,4090,Credits & Refunds,revenue,-50.64,3
+2025-03,5000,Hosting & Infrastructure,cogs,-204793.04,4
+2025-03,5010,Payment Processing,cogs,-41168.28,1
+2025-03,5020,Customer Support,cogs,-8785.8,1
+2025-03,6000,Payroll,opex,-492050.05,2
+2025-03,6010,Contractors,opex,-49994.51,1
+2025-03,6020,Software & Tools,opex,-81457.75,38
+2025-03,6030,Marketing,opex,-249933.48,11
+2025-03,6040,Legal & Professional,opex,-148557.94,3
+2025-03,6050,Travel & Events,opex,-55013.25,29
+2025-03,6060,Facilities,opex,-75984.54,19
+2025-04,4000,Subscription Revenue,revenue,1528192.59,862
+2025-04,4010,Usage Revenue,revenue,74943.97,198
+2025-04,4020,Professional Services,revenue,8556.63,1
+2025-04,4090,Credits & Refunds,revenue,-1064.42,5
+2025-04,5000,Hosting & Infrastructure,cogs,-197409.04,4
+2025-04,5010,Payment Processing,cogs,-33164.61,1
+2025-04,5020,Customer Support,cogs,-8594.55,1
+2025-04,6000,Payroll,opex,-488119.31,2
+2025-04,6010,Contractors,opex,-47648.66,1
+2025-04,6020,Software & Tools,opex,-61545.45,36
+2025-04,6030,Marketing,opex,-183916.28,16
+2025-04,6040,Legal & Professional,opex,-109288.28,3
+2025-04,6050,Travel & Events,opex,-146935.05,40
+2025-04,6060,Facilities,opex,-82464.11,18
+2025-05,4000,Subscription Revenue,revenue,1604607.6,415
+2025-05,4010,Usage Revenue,revenue,37440.15,87
+2025-05,4020,Professional Services,revenue,52124.61,3
+2025-05,4090,Credits & Refunds,revenue,-652.48,2
+2025-05,5000,Hosting & Infrastructure,cogs,-205036.42,4
+2025-05,5010,Payment Processing,cogs,-41254.64,1
+2025-05,5020,Customer Support,cogs,-8762.5,1
+2025-05,6000,Payroll,opex,-480600.12,2
+2025-05,6010,Contractors,opex,-91380.84,3
+2025-05,6020,Software & Tools,opex,-62783.46,43
+2025-05,6030,Marketing,opex,-181555.54,10
+2025-05,6040,Legal & Professional,opex,13930.0,3
+2025-05,6050,Travel & Events,opex,-253458.85,45
+2025-05,6060,Facilities,opex,-68889.5,16
+2025-06,4000,Subscription Revenue,revenue,1632067.67,432
+2025-06,4010,Usage Revenue,revenue,59036.9,82
+2025-06,4020,Professional Services,revenue,65445.46,4
+2025-06,4090,Credits & Refunds,revenue,-682.42,2
+2025-06,5000,Hosting & Infrastructure,cogs,-548139.04,5
+2025-06,5010,Payment Processing,cogs,-42747.6,1
+2025-06,5020,Customer Support,cogs,-9517.15,1
+2025-06,6000,Payroll,opex,-491291.0,2
+2025-06,6010,Contractors,opex,-95162.18,2
+2025-06,6020,Software & Tools,opex,-298602.54,54
+2025-06,6030,Marketing,opex,-247863.09,13
+2025-06,6040,Legal & Professional,opex,-80644.75,4
+2025-06,6050,Travel & Events,opex,-211389.07,33
+2025-06,6060,Facilities,opex,-77401.94,18
+2025-07,4000,Subscription Revenue,revenue,1704005.9,460
+2025-07,4010,Usage Revenue,revenue,48372.73,104
+2025-07,4020,Professional Services,revenue,53629.97,2
+2025-07,4090,Credits & Refunds,revenue,-3376.77,5
+2025-07,5000,Hosting & Infrastructure,cogs,-205028.04,4
+2025-07,5010,Payment Processing,cogs,-46168.38,1
+2025-07,5020,Customer Support,cogs,-8742.65,1
+2025-07,6000,Payroll,opex,-499925.42,2
+2025-07,6010,Contractors,opex,-121385.35,4
+2025-07,6020,Software & Tools,opex,-46874.64,33
+2025-07,6030,Marketing,opex,-168695.28,8
+2025-07,6050,Travel & Events,opex,-126080.72,23
+2025-07,6060,Facilities,opex,-66761.79,13
+2025-08,4000,Subscription Revenue,revenue,1586335.37,407
+2025-08,4010,Usage Revenue,revenue,74225.92,80
+2025-08,4020,Professional Services,revenue,49370.62,4
+2025-08,4090,Credits & Refunds,revenue,-698.59,3
+2025-08,5000,Hosting & Infrastructure,cogs,-209200.47,4
+2025-08,5010,Payment Processing,cogs,-42336.1,1
+2025-08,5020,Customer Support,cogs,-8535.99,1
+2025-08,6000,Payroll,opex,-753523.2,3
+2025-08,6010,Contractors,opex,-126518.71,4
+2025-08,6020,Software & Tools,opex,-46650.94,42
+2025-08,6030,Marketing,opex,-157891.81,12
+2025-08,6050,Travel & Events,opex,-212642.86,28
+2025-08,6060,Facilities,opex,-66733.45,12
+2025-09,4000,Subscription Revenue,revenue,2025848.9,569
+2025-09,4010,Usage Revenue,revenue,88504.01,127
+2025-09,4020,Professional Services,revenue,49309.19,6
+2025-09,4090,Credits & Refunds,revenue,-104.68,2
+2025-09,5000,Hosting & Infrastructure,cogs,-205007.4,4
+2025-09,5010,Payment Processing,cogs,-47863.01,1
+2025-09,5020,Customer Support,cogs,-8440.22,1
+2025-09,6000,Payroll,opex,-505149.87,2
+2025-09,6010,Contractors,opex,-102715.48,3
+2025-09,6020,Software & Tools,opex,-97474.14,49
+2025-09,6030,Marketing,opex,-279266.71,10
+2025-09,6040,Legal & Professional,opex,-17194.44,1
+2025-09,6050,Travel & Events,opex,-204863.06,39
+2025-09,6060,Facilities,opex,-75449.95,15
+2025-10,4000,Subscription Revenue,revenue,1875904.99,516
+2025-10,4010,Usage Revenue,revenue,68951.64,106
+2025-10,4020,Professional Services,revenue,12329.96,2
+2025-10,4090,Credits & Refunds,revenue,-4077.84,8
+2025-10,5000,Hosting & Infrastructure,cogs,-222604.24,4
+2025-10,5010,Payment Processing,cogs,-50248.65,1
+2025-10,5020,Customer Support,cogs,-9505.35,1
+2025-10,6000,Payroll,opex,-513224.61,2
+2025-10,6010,Contractors,opex,-160504.92,4
+2025-10,6020,Software & Tools,opex,-47974.79,36
+2025-10,6030,Marketing,opex,-203821.57,5
+2025-10,6040,Legal & Professional,opex,-120132.85,4
+2025-10,6050,Travel & Events,opex,-236890.43,42
+2025-10,6060,Facilities,opex,-77427.97,20
+2025-11,4000,Subscription Revenue,revenue,1929431.5,535
+2025-11,4010,Usage Revenue,revenue,65751.79,111
+2025-11,4020,Professional Services,revenue,54256.89,3
+2025-11,4090,Credits & Refunds,revenue,-2039.3,4
+2025-11,5000,Hosting & Infrastructure,cogs,-207576.91,4
+2025-11,5010,Payment Processing,cogs,-48360.3,1
+2025-11,5020,Customer Support,cogs,-9452.77,1
+2025-11,6000,Payroll,opex,-500977.13,2
+2025-11,6010,Contractors,opex,-225451.79,4
+2025-11,6020,Software & Tools,opex,-74550.18,46
+2025-11,6030,Marketing,opex,-223405.5,13
+2025-11,6040,Legal & Professional,opex,-68453.06,2
+2025-11,6050,Travel & Events,opex,-148979.1,32
+2025-11,6060,Facilities,opex,-77192.82,22
+2025-12,4000,Subscription Revenue,revenue,1944820.32,524
+2025-12,4010,Usage Revenue,revenue,58822.09,108
+2025-12,4090,Credits & Refunds,revenue,-6865.03,8
+2025-12,5000,Hosting & Infrastructure,cogs,-221067.62,4
+2025-12,5010,Payment Processing,cogs,-49822.86,1
+2025-12,5020,Customer Support,cogs,-9200.44,1
+2025-12,6000,Payroll,opex,-516429.43,2
+2025-12,6010,Contractors,opex,-166163.16,2
+2025-12,6020,Software & Tools,opex,-57441.31,40
+2025-12,6030,Marketing,opex,-242685.66,12
+2025-12,6040,Legal & Professional,opex,-50213.57,2
+2025-12,6050,Travel & Events,opex,-98018.81,33
+2025-12,6060,Facilities,opex,-79812.65,15
