@@ -43,6 +43,26 @@ class Transaction(BaseModel):
     region: Optional[str] = None
 
 
+class NarrativeVerdict(BaseModel):
+    """Result of checking a public statement (e.g. an earnings-call quote)
+    against the real driver/transaction data for a variance.
+
+    Optional, additive feature -- does not affect the core Variance /
+    Driver / Explanation contracts above.
+    """
+
+    variance_id: str
+    claim_text: str
+    claimed_entities: list[str] = Field(default_factory=list)
+    matched_entities: list[str] = Field(default_factory=list)
+    actual_top_entities: list[str] = Field(default_factory=list)
+    match_pct: Optional[float] = None
+    verdict: str  # "supported" | "partially_supported" | "unsupported" | "contradicted" | "unverifiable"
+    reasoning: str
+    driver_ids: list[str] = Field(default_factory=list)
+    transaction_ids: list[str] = Field(default_factory=list)
+
+
 class Explanation(BaseModel):
     variance_id: str
     headline: str
