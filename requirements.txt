@@ -1,0 +1,6 @@
+pandas>=2
+pydantic>=2
+pytest>=7
+networkx>=3.5
+scipy>=1.14
+anthropic>=0.30  # optional: only used if ANTHROPIC_API_KEY is set
