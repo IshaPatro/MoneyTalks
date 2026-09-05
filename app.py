@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import html
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -468,6 +469,71 @@ st.markdown(
     @keyframes whale-float { 50% { transform:scale(1.65) translateY(-5px); } }
     @keyframes loader-scan { from { transform:translateX(-110%); } to { transform:translateX(245%); } }
 
+    /* -- API key bar (Overview tab) -- */
+    .st-key-apikey_panel { border:1px solid rgba(51,161,221,.20); border-radius:12px; background:linear-gradient(145deg,rgba(24,77,135,.16),rgba(0,0,0,.7)); padding:.6rem .9rem; margin-bottom:.9rem; }
+    .apikey-row { display:flex; align-items:center; gap:.7rem; }
+    .apikey-label { display:flex; align-items:center; gap:.4rem; color:rgba(255,255,255,.62); font-size:.6rem; font-weight:750; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+    .llm-status { display:flex; align-items:center; gap:.35rem; font-size:.56rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:.28rem .6rem; border-radius:999px; white-space:nowrap; }
+    .llm-status.on { color:var(--green); background:rgba(53,208,127,.10); border:1px solid rgba(53,208,127,.28); }
+    .llm-status.off { color:rgba(255,255,255,.42); background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); }
+    .llm-status .dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+    .st-key-apikey_panel .stTextInput input { min-height:32px; color:var(--white)!important; background:rgba(255,255,255,.06)!important; border:1px solid rgba(255,255,255,.16)!important; border-radius:8px!important; font-size:.62rem!important; }
+
+    /* -- shared panel styling for Risk Graph / Fact-Check tabs -- */
+    .st-key-chart_panel_risk_amp,.st-key-chart_panel_risk_net,.st-key-chart_panel_risk_story,
+    .st-key-chart_panel_risk_table,.st-key-chart_panel_risk_trace,.st-key-factcheck_input,.st-key-factcheck_history {
+      border:1px solid rgba(51,161,221,.18); border-radius:14px;
+      background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.66));
+      box-shadow:0 16px 42px rgba(0,0,0,.34); overflow:hidden; padding:.7rem .75rem .5rem;
+    }
+
+    /* -- KPI strip (Risk Graph tab) -- */
+    .kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin-bottom:.85rem; }
+    .kpi-tile { padding:.62rem .72rem; border-radius:11px; border:1px solid rgba(51,161,221,.18); background:linear-gradient(145deg,rgba(24,77,135,.16),rgba(0,0,0,.7)); }
+    .kpi-tile .kpi-label { color:rgba(255,255,255,.46); font-size:.48rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+    .kpi-tile .kpi-value { margin-top:.28rem; font-size:1.1rem; font-weight:850; color:var(--white); letter-spacing:-.03em; }
+    .kpi-tile .kpi-sub { margin-top:.1rem; font-size:.52rem; color:rgba(255,255,255,.4); }
+    .kpi-tile.crit .kpi-value { color:var(--red); }
+    .kpi-tile.warn .kpi-value { color:var(--teal); }
+
+    /* -- severity pills + risk table -- */
+    .sev-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.16rem .5rem; border-radius:999px; font-size:.5rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+    .sev-pill.critical { color:var(--red); background:rgba(255,92,108,.12); border:1px solid rgba(255,92,108,.3); }
+    .sev-pill.elevated { color:#f5c451; background:rgba(245,196,81,.10); border:1px solid rgba(245,196,81,.28); }
+    .sev-pill.normal { color:var(--teal); background:rgba(58,192,239,.09); border:1px solid rgba(58,192,239,.22); }
+    .risk-row { display:grid; grid-template-columns:1.1fr .9fr 1.3fr .9fr; align-items:center; gap:.5rem; padding:.5rem .15rem; border-top:1px solid rgba(255,255,255,.07); font-size:.63rem; }
+    .risk-row.head { color:rgba(255,255,255,.4); font-size:.5rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; border-top:none; padding-bottom:.35rem; }
+    .risk-row .acct { font-weight:750; color:var(--white); }
+    .risk-row .score { font-variant-numeric:tabular-nums; color:var(--teal); }
+    .risk-row .driver { color:rgba(255,255,255,.6); }
+
+    /* -- risk narrative story card -- */
+    .risk-story-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.4rem; }
+    .risk-story-head .t { font-size:.75rem; font-weight:750; color:var(--white); }
+    .risk-story-head .s { font-size:.5rem; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.07em; }
+
+    /* -- fact-check hero verdict card -- */
+    .verdict-hero { display:grid; grid-template-columns:auto 1fr; gap:1rem; align-items:center; padding:1rem 1.1rem; border-radius:14px; margin:.8rem 0; border:1px solid; }
+    .verdict-hero.supported { background:linear-gradient(135deg,rgba(53,208,127,.14),rgba(0,0,0,.5)); border-color:rgba(53,208,127,.35); }
+    .verdict-hero.contradicted { background:linear-gradient(135deg,rgba(255,92,108,.14),rgba(0,0,0,.5)); border-color:rgba(255,92,108,.35); }
+    .verdict-hero.partially_supported,.verdict-hero.unsupported { background:linear-gradient(135deg,rgba(245,196,81,.14),rgba(0,0,0,.5)); border-color:rgba(245,196,81,.32); }
+    .verdict-hero.unverifiable { background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(0,0,0,.5)); border-color:rgba(255,255,255,.16); }
+    .verdict-hero .icon { font-size:2.1rem; line-height:1; }
+    .verdict-hero .label { font-size:1.05rem; font-weight:850; letter-spacing:-.01em; }
+    .verdict-hero .reason { margin-top:.3rem; font-size:.72rem; color:rgba(255,255,255,.72); line-height:1.45; }
+
+    .meter { height:7px; border-radius:99px; background:rgba(255,255,255,.09); overflow:hidden; margin-top:.5rem; }
+    .meter i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--blue),var(--teal)); }
+    .meter-label { display:flex; justify-content:space-between; font-size:.52rem; color:rgba(255,255,255,.42); margin-top:.25rem; text-transform:uppercase; letter-spacing:.06em; }
+
+    .evidence-chip-row { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }
+    .evidence-chip { font-family:monospace; font-size:.56rem; padding:.2rem .5rem; border-radius:6px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.13); color:rgba(255,255,255,.68); }
+
+    .history-item { display:grid; grid-template-columns:16px 1fr auto; gap:.5rem; align-items:start; padding:.45rem 0; border-top:1px solid rgba(255,255,255,.07); font-size:.6rem; }
+    .history-item:first-child { border-top:none; }
+    .history-item .claim { color:rgba(255,255,255,.68); }
+    .history-item .badge { font-size:.48rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:.12rem .4rem; border-radius:5px; white-space:nowrap; }
+
     @media(max-width:900px) {
       .block-container { padding:.6rem!important; }
       .tagline,.period-pill { display:none; }
@@ -554,6 +620,31 @@ st.markdown(
 tab_overview, tab_risk, tab_check = st.tabs(["📊 Overview", "🕸️ Risk Graph", "📞 Investor Call Fact-Check"])
 
 with tab_overview:
+    with st.container(key="apikey_panel"):
+        key_col, status_col = st.columns([5, 1.4])
+        with key_col:
+            st.markdown("<div class='apikey-row'><span class='apikey-label'>🔑 Anthropic API key</span></div>", unsafe_allow_html=True)
+            entered_key = st.text_input(
+                "Anthropic API key", type="password", label_visibility="collapsed",
+                value=st.session_state.get("anthropic_api_key", ""),
+                placeholder="sk-ant-... (optional -- leave blank to use the built-in template narrator)",
+                key="anthropic_api_key_input",
+            )
+            if entered_key != st.session_state.get("anthropic_api_key", ""):
+                st.session_state["anthropic_api_key"] = entered_key
+                if entered_key:
+                    os.environ["ANTHROPIC_API_KEY"] = entered_key
+                else:
+                    os.environ.pop("ANTHROPIC_API_KEY", None)
+                st.rerun()
+        with status_col:
+            llm_on = bool(os.environ.get("ANTHROPIC_API_KEY"))
+            st.markdown(
+                f"<div style='padding-top:1.15rem'><span class='llm-status {'on' if llm_on else 'off'}'>"
+                f"<span class='dot'></span>{'LLM connected' if llm_on else 'Template mode'}</span></div>",
+                unsafe_allow_html=True,
+            )
+
     title_col, selector_col = st.columns([5, 1.35])
     with title_col:
         st.markdown(
@@ -653,56 +744,130 @@ with tab_risk:
     st.markdown(
         "<div class='section-line'><div><div class='eyebrow'>Systemic risk graph</div>"
         "<div class='section-title'>Which accounts sit downstream of the most operational risk?</div></div>"
-        "<div class='section-sub'>Reliability incidents, support friction, and payment delays -> financial "
-        "consequences -> accounts. Powered by backend/risk_graph (networkx PageRank).</div></div>",
+        "<div class='section-sub'>Reliability incidents, support friction, and payment delays &rarr; financial "
+        "consequences &rarr; accounts. Live PageRank over a directed graph (backend/risk_graph).</div></div>",
         unsafe_allow_html=True,
     )
     st.write("")
 
     risk_accounts, amplifier_ranking, graph_data = load_risk_result(DATA_PATH)
+    n_accounts = len(risk_accounts)
+    critical_cutoff = max(3, round(n_accounts * 0.06))
+    traceable = int((risk_accounts["cascading_loss_paths"].map(len) > 0).sum())
+    top_row = risk_accounts.iloc[0]
+    top_driver_name, top_driver_val = amplifier_ranking[0]
 
-    amp_col, net_col = st.columns([1, 1.6], gap="medium")
+    def _severity(rank: int) -> tuple[str, str]:
+        if rank <= critical_cutoff:
+            return "critical", "Critical"
+        if rank <= critical_cutoff * 2:
+            return "elevated", "Elevated"
+        return "normal", "Normal"
+
+    st.markdown(
+        f"""<div class="kpi-strip">
+          <div class="kpi-tile crit"><div class="kpi-label">Highest cascade risk</div>
+            <div class="kpi-value">{top_row['account_id']}</div>
+            <div class="kpi-sub">score {top_row['graph_pagerank_risk_score']:.4f}</div></div>
+          <div class="kpi-tile"><div class="kpi-label">Top risk amplifier</div>
+            <div class="kpi-value">{top_driver_name.replace('_',' ')}</div>
+            <div class="kpi-sub">{money(top_driver_val, True)} downstream impact</div></div>
+          <div class="kpi-tile warn"><div class="kpi-label">Critical accounts</div>
+            <div class="kpi-value">{critical_cutoff}</div>
+            <div class="kpi-sub">of {n_accounts} scored this period</div></div>
+          <div class="kpi-tile"><div class="kpi-label">Traceable loss paths</div>
+            <div class="kpi-value">{traceable}</div>
+            <div class="kpi-sub">root cause &rarr; account confirmed</div></div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    with st.container(key="chart_panel_risk_story"):
+        top_path = max(
+            (p for p in top_row["cascading_loss_paths"]), key=lambda p: p["total_weight"], default=None,
+        )
+        st.markdown(
+            f"<div class='risk-story-head'><span class='t'>Why {top_row['account_id']} is the #1 systemic risk</span>"
+            f"<span class='s'>Auto-generated from the traced graph</span></div>", unsafe_allow_html=True,
+        )
+        if top_path:
+            source, mid, target = top_path["path"][0], top_path["path"][1], top_path["path"][-1]
+            e1, e2 = top_path["edges"][0], top_path["edges"][1]
+            st.markdown(
+                f"<div class='story-step risk'><i>1</i><div><div class='story-label'>Operational trigger</div>"
+                f"<div class='story-text'><b>{source.replace('_',' ')}</b> is active on this account, "
+                f"driving <b>{money(e1['weight'], True)}</b> toward <b>{mid.replace('_',' ')}</b>.</div></div></div>"
+                f"<div class='story-step risk'><i>2</i><div><div class='story-label'>Financial consequence</div>"
+                f"<div class='story-text'><b>{mid.replace('_',' ')}</b> converts that into "
+                f"<b>{e2['weight']:.1%} of {target}'s MRR</b> at risk.</div></div></div>"
+                f"<div class='story-step positive'><i>3</i><div><div class='story-label'>Net effect</div>"
+                f"<div class='story-text'>Combined weighted exposure: <b>{money(top_path['total_weight'], True)}</b> "
+                f"&mdash; the largest traced chain in the portfolio this period.</div></div></div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.caption("No traceable path for the top-ranked account this period.")
+
+    st.write("")
+    amp_col, net_col = st.columns([1, 1.55], gap="medium")
     with amp_col:
         with st.container(key="chart_panel_risk_amp"):
             st.markdown("<div class='chart-heading'><div class='chart-title'>Risk amplifier ranking</div>"
                         "<div class='chart-meta'>Weighted downstream $ impact</div></div>", unsafe_allow_html=True)
             amp_fig = chart_base()
+            amp_colors = [RED, "#f5c451", TEAL]
             amp_fig.add_trace(go.Bar(
-                x=[v for _, v in amplifier_ranking], y=[n for n, _ in amplifier_ranking],
-                orientation="h", marker=dict(color=RED),
+                x=[v for _, v in amplifier_ranking], y=[n.replace("_", " ") for n, _ in amplifier_ranking],
+                orientation="h", marker=dict(color=amp_colors[:len(amplifier_ranking)]),
+                text=[money(v, True) for _, v in amplifier_ranking], textposition="outside",
+                textfont=dict(color=WHITE, size=9),
                 hovertemplate="<b>%{y}</b><br>$%{x:,.0f}<extra></extra>",
             ))
             amp_fig.update_xaxes(tickprefix="$", tickformat="~s")
-            amp_fig.update_layout(height=180, margin=dict(l=8, r=10, t=6, b=20))
+            amp_fig.update_layout(height=170, margin=dict(l=8, r=32, t=6, b=20), bargap=.35)
             st.plotly_chart(amp_fig, width="stretch", config={"displayModeBar": False})
-
-            st.markdown("<div class='chart-heading' style='margin-top:.6rem'><div class='chart-title'>Top accounts by Cascade Risk Index</div>"
-                        "<div class='chart-meta'>PageRank</div></div>", unsafe_allow_html=True)
-            top_risk = risk_accounts.head(10)[["account_id", "graph_pagerank_risk_score", "primary_risk_driver_node"]]
-            st.dataframe(
-                top_risk.rename(columns={
-                    "account_id": "Account", "graph_pagerank_risk_score": "Cascade Risk Index",
-                    "primary_risk_driver_node": "Primary driver",
-                }),
-                hide_index=True, width="stretch",
-            )
     with net_col:
         with st.container(key="chart_panel_risk_net"):
             st.markdown("<div class='chart-heading'><div class='chart-title'>Risk flow graph</div>"
-                        "<div class='chart-meta'>Risk source → consequence → account</div></div>", unsafe_allow_html=True)
+                        "<div class='chart-meta'>Risk source &rarr; consequence &rarr; account</div></div>", unsafe_allow_html=True)
             st.plotly_chart(risk_network_chart(graph_data), width="stretch", config={"displayModeBar": False})
-            st.caption("🔴 Operational risk source · 🟠 Financial consequence · 🔵 Account (top 60 shown)")
+            st.caption("🔴 Operational risk source &nbsp;·&nbsp; 🟠 Financial consequence &nbsp;·&nbsp; 🔵 Account")
 
     st.write("")
-    st.markdown("<div class='chart-heading'><div class='chart-title'>Trace a cascading loss path</div></div>", unsafe_allow_html=True)
-    selected_account = st.selectbox("Pick an account", risk_accounts["account_id"].tolist(), key="risk_account_select")
-    row = risk_accounts[risk_accounts["account_id"] == selected_account].iloc[0]
-    st.markdown(f"**Cascade Risk Index:** {row['graph_pagerank_risk_score']:.4f} &nbsp;|&nbsp; **Primary driver:** {row['primary_risk_driver_node']}")
-    if row["cascading_loss_paths"]:
-        for path in row["cascading_loss_paths"]:
-            st.markdown(f"- `{' → '.join(path['path'])}`  (weight {path['total_weight']:,.2f})")
-    else:
-        st.caption("No traceable operational-risk path to this account.")
+    with st.container(key="chart_panel_risk_table"):
+        st.markdown("<div class='chart-heading'><div class='chart-title'>Top 10 accounts by Cascade Risk Index</div>"
+                    "<div class='chart-meta'>PageRank, weighted</div></div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='risk-row head'><div>Account</div><div>Cascade score</div><div>Primary driver</div><div>Severity</div></div>",
+            unsafe_allow_html=True,
+        )
+        for rank, (_, r) in enumerate(risk_accounts.head(10).iterrows(), start=1):
+            sev_class, sev_label = _severity(rank)
+            st.markdown(
+                f"<div class='risk-row'><div class='acct'>{r['account_id']}</div>"
+                f"<div class='score'>{r['graph_pagerank_risk_score']:.4f}</div>"
+                f"<div class='driver'>{(r['primary_risk_driver_node'] or '—').replace('_',' ')}</div>"
+                f"<div><span class='sev-pill {sev_class}'>{sev_label}</span></div></div>",
+                unsafe_allow_html=True,
+            )
+
+    st.write("")
+    with st.container(key="chart_panel_risk_trace"):
+        st.markdown("<div class='chart-heading'><div class='chart-title'>Trace a cascading loss path</div>"
+                    "<div class='chart-meta'>Pick any account</div></div>", unsafe_allow_html=True)
+        selected_account = st.selectbox("Pick an account", risk_accounts["account_id"].tolist(), key="risk_account_select", label_visibility="collapsed")
+        row = risk_accounts[risk_accounts["account_id"] == selected_account].iloc[0]
+        st.markdown(
+            f"<div style='margin:.5rem 0'><span class='sev-pill normal'>Cascade {row['graph_pagerank_risk_score']:.4f}</span> "
+            f"&nbsp; <span class='sev-pill elevated'>{(row['primary_risk_driver_node'] or 'No driver').replace('_',' ')}</span></div>",
+            unsafe_allow_html=True,
+        )
+        if row["cascading_loss_paths"]:
+            for path in row["cascading_loss_paths"]:
+                chips = " &rarr; ".join(f"<span class='evidence-chip'>{p}</span>" for p in path["path"])
+                st.markdown(f"<div style='margin:.35rem 0'>{chips} &nbsp; <span style='color:rgba(255,255,255,.4);font-size:.6rem'>weight {path['total_weight']:,.2f}</span></div>", unsafe_allow_html=True)
+        else:
+            st.caption("No traceable operational-risk path to this account.")
 
 
 with tab_check:
@@ -710,60 +875,125 @@ with tab_check:
         "<div class='section-line'><div><div class='eyebrow'>Narrative fact-check</div>"
         "<div class='section-title'>Does the story match the transactions?</div></div>"
         "<div class='section-sub'>Paste a line from an earnings call, investor update, or exec summary. "
-        "Checked against real driver data -- never the LLM's own judgment (backend/agent_engine/narrative_check.py).</div></div>",
+        "Checked against real driver data -- never the LLM's own judgment "
+        "(backend/agent_engine/narrative_check.py).</div></div>",
         unsafe_allow_html=True,
     )
     st.write("")
 
-    scope_options = ["Total Portfolio MRR"] + risk_accounts["account_id"].tolist()
-    scope_col, _ = st.columns([1, 2])
-    with scope_col:
-        scope = st.selectbox("Check against", scope_options, key="factcheck_scope")
+    if "factcheck_history" not in st.session_state:
+        st.session_state.factcheck_history = []
 
-    st.markdown("**Try one of these, or write your own:**")
-    example_col1, example_col2, example_col3 = st.columns(3)
-    example_claims = [
-        "Growth this month was broad-based across the customer base.",
-        f"{whale} drove the entire increase this month.",
-        "Revenue was flat month over month.",
-    ]
-    if "factcheck_claim" not in st.session_state:
-        st.session_state.factcheck_claim = example_claims[0]
-    for col, claim in zip([example_col1, example_col2, example_col3], example_claims):
-        with col:
-            if st.button(claim, key=f"example_{claim[:12]}", use_container_width=True):
-                st.session_state.factcheck_claim = claim
+    input_col, history_col = st.columns([1.6, 1], gap="medium")
 
-    claim_text = st.text_area("Claim to check", key="factcheck_claim", height=80)
-    run_check = st.button("🔎 Check this claim", type="primary")
+    with input_col:
+        with st.container(key="factcheck_input"):
+            st.markdown("<div class='chart-heading'><div class='chart-title'>Check a claim</div>"
+                        "<div class='chart-meta'>Scope + wording</div></div>", unsafe_allow_html=True)
 
-    if run_check and claim_text.strip():
-        if scope == "Total Portfolio MRR":
-            variance = engine.get_portfolio_variance(current_period, comparison_period)
-        else:
-            variance = next(
-                v for v in engine.compare_periods(current_period, comparison_period)
-                if v.account == scope
-            )
-        verdict = verify_narrative_claim(claim_text.strip(), variance, engine)
+            scope_options = ["Total Portfolio MRR"] + risk_accounts["account_id"].tolist()
+            scope = st.selectbox("Check against", scope_options, key="factcheck_scope")
 
-        badge = {
-            "supported": ("✅ SUPPORTED", GREEN),
-            "contradicted": ("🚨 CONTRADICTED", RED),
-            "partially_supported": ("⚠️ PARTIALLY SUPPORTED", "#F5A623"),
-            "unsupported": ("❌ UNSUPPORTED", "#F5A623"),
-            "unverifiable": ("❓ UNVERIFIABLE", "rgba(255,255,255,.5)"),
-        }.get(verdict.verdict, (verdict.verdict.upper(), WHITE))
-        label, color = badge
+            st.markdown("<div style='margin-top:.5rem;font-size:.6rem;color:rgba(255,255,255,.45);"
+                        "text-transform:uppercase;letter-spacing:.06em;font-weight:750'>Try one, or write your own</div>",
+                        unsafe_allow_html=True)
+            example_claims = [
+                "Growth this month was broad-based across the customer base.",
+                f"{whale} drove the entire increase this month.",
+                "Revenue was flat month over month.",
+            ]
+            if "factcheck_claim" not in st.session_state:
+                st.session_state.factcheck_claim = example_claims[0]
+            ex_cols = st.columns(3)
+            for col, claim in zip(ex_cols, example_claims):
+                with col:
+                    if st.button(claim, key=f"example_{claim[:12]}", use_container_width=True):
+                        st.session_state.factcheck_claim = claim
 
-        st.markdown(
-            f"<div class='risk-copy' style='margin-top:1rem'><strong style='color:{color}'>{label}</strong>"
-            f"<span>{html.escape(verdict.reasoning)}</span></div>",
-            unsafe_allow_html=True,
-        )
-        with st.expander("Evidence"):
-            st.write("Claimed entities found in the data:", verdict.claimed_entities or "none")
-            st.write("Actual top drivers:", verdict.actual_top_entities)
-            st.write("Match %:", f"{verdict.match_pct:.0%}" if verdict.match_pct is not None else "n/a")
-            st.write("Driver IDs:", verdict.driver_ids)
-            st.write("Transaction IDs:", verdict.transaction_ids)
+            claim_text = st.text_area("Claim to check", key="factcheck_claim", height=80, label_visibility="collapsed")
+            run_check = st.button("🔎 Check this claim", type="primary", use_container_width=True)
+
+            if run_check and claim_text.strip():
+                if scope == "Total Portfolio MRR":
+                    variance = engine.get_portfolio_variance(current_period, comparison_period)
+                else:
+                    variance = next(
+                        v for v in engine.compare_periods(current_period, comparison_period)
+                        if v.account == scope
+                    )
+                verdict = verify_narrative_claim(claim_text.strip(), variance, engine)
+                st.session_state["factcheck_last"] = verdict
+                st.session_state.factcheck_history.insert(0, {
+                    "claim": claim_text.strip(), "scope": scope, "verdict": verdict.verdict,
+                })
+                st.session_state.factcheck_history = st.session_state.factcheck_history[:6]
+
+            verdict = st.session_state.get("factcheck_last")
+            if verdict is not None:
+                meta = {
+                    "supported": ("✅", "Supported", "supported"),
+                    "contradicted": ("🚨", "Contradicted", "contradicted"),
+                    "partially_supported": ("⚠️", "Partially supported", "partially_supported"),
+                    "unsupported": ("❌", "Unsupported", "unsupported"),
+                    "unverifiable": ("❓", "Unverifiable", "unverifiable"),
+                }.get(verdict.verdict, ("•", verdict.verdict.title(), "unverifiable"))
+                icon, label, css_class = meta
+
+                st.markdown(
+                    f"<div class='verdict-hero {css_class}'><div class='icon'>{icon}</div>"
+                    f"<div><div class='label'>{label}</div>"
+                    f"<div class='reason'>{html.escape(verdict.reasoning)}</div></div></div>",
+                    unsafe_allow_html=True,
+                )
+
+                if verdict.match_pct is not None:
+                    pct = max(0.0, min(1.0, verdict.match_pct))
+                    st.markdown(
+                        f"<div class='meter'><i style='width:{pct*100:.0f}%'></i></div>"
+                        f"<div class='meter-label'><span>Claimed entities' share of the change</span><span>{pct:.0%}</span></div>",
+                        unsafe_allow_html=True,
+                    )
+
+                claimed = verdict.claimed_entities or verdict.matched_entities
+                st.markdown(
+                    "<div style='margin-top:.9rem;font-size:.6rem;color:rgba(255,255,255,.45);"
+                    "text-transform:uppercase;letter-spacing:.06em;font-weight:750'>Evidence</div>",
+                    unsafe_allow_html=True,
+                )
+                chip_html = lambda items: "".join(f"<span class='evidence-chip'>{html.escape(str(i))}</span>" for i in items) or "<span class='evidence-chip'>none</span>"
+                st.markdown(
+                    f"<div style='font-size:.62rem;color:rgba(255,255,255,.5);margin-top:.4rem'>Claim named</div>"
+                    f"<div class='evidence-chip-row'>{chip_html(claimed)}</div>"
+                    f"<div style='font-size:.62rem;color:rgba(255,255,255,.5);margin-top:.5rem'>Actual top drivers</div>"
+                    f"<div class='evidence-chip-row'>{chip_html(verdict.actual_top_entities)}</div>"
+                    f"<div style='font-size:.62rem;color:rgba(255,255,255,.5);margin-top:.5rem'>Transactions</div>"
+                    f"<div class='evidence-chip-row'>{chip_html(verdict.transaction_ids[:8])}</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.caption("Run a check above to see the verdict, confidence, and evidence here.")
+
+    with history_col:
+        with st.container(key="factcheck_history"):
+            st.markdown("<div class='chart-heading'><div class='chart-title'>Session history</div>"
+                        "<div class='chart-meta'>This run</div></div>", unsafe_allow_html=True)
+            if not st.session_state.factcheck_history:
+                st.caption("No claims checked yet this session.")
+            else:
+                badge_style = {
+                    "supported": (GREEN, "rgba(53,208,127,.12)"),
+                    "contradicted": (RED, "rgba(255,92,108,.12)"),
+                    "partially_supported": ("#f5c451", "rgba(245,196,81,.12)"),
+                    "unsupported": ("#f5c451", "rgba(245,196,81,.12)"),
+                    "unverifiable": ("rgba(255,255,255,.55)", "rgba(255,255,255,.06)"),
+                }
+                for item in st.session_state.factcheck_history:
+                    color, bg = badge_style.get(item["verdict"], (WHITE, "rgba(255,255,255,.06)"))
+                    claim_short = html.escape(item["claim"][:70] + ("…" if len(item["claim"]) > 70 else ""))
+                    st.markdown(
+                        f"<div class='history-item'><span>•</span>"
+                        f"<div><div class='claim'>{claim_short}</div>"
+                        f"<div style='color:rgba(255,255,255,.35);font-size:.52rem;margin-top:.15rem'>{item['scope']}</div></div>"
+                        f"<span class='badge' style='color:{color};background:{bg}'>{item['verdict'].replace('_',' ')}</span></div>",
+                        unsafe_allow_html=True,
+                    )
