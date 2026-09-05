@@ -272,6 +272,13 @@ def _simulate_account(acct: Account, tx_counter: dict) -> list[dict]:
         else:
             mrr_before = acct.current_mrr
             terminal_churn = False
+            # These correlate the operational telemetry (error_rate,
+            # tickets_count) with the billing event it's meant to have
+            # caused, so the risk graph (Reliability_Risk -> SLA_Credit_Loss,
+            # Support_Friction -> Refund_Loss) has real causal edges to
+            # find instead of coincidental, uncorrelated noise.
+            reliability_incident = False
+            support_incident = False
 
             # Seeded scenarios take priority over the random walk.
             if acct.whale_expansion_month == month_in_life:
@@ -283,6 +290,7 @@ def _simulate_account(acct: Account, tx_counter: dict) -> list[dict]:
                 events.append(Transaction(_next_tx_id(tx_counter, "credit", global_month),
                                            base_ts.isoformat(), "SLA_Credit",
                                            "System_Outage_Credit", amt))
+                reliability_incident = True
             elif acct.quarterly_contraction and month_in_life % 3 == 0:
                 amt = -round(mrr_before * random.uniform(0.03, 0.08), 2)
                 events.append(Transaction(_next_tx_id(tx_counter, "credit", global_month),
@@ -318,6 +326,7 @@ def _simulate_account(acct: Account, tx_counter: dict) -> list[dict]:
                             _next_tx_id(tx_counter, "credit", global_month),
                             (base_ts + timedelta(days=10)).isoformat(), "Refund",
                             "Billing_Adjustment", amt2))
+                        support_incident = True
                 elif random.random() < 0.05:
                     amt = round(mrr_before * random.uniform(0.01, 0.08), 2)
                     events.append(Transaction(_next_tx_id(tx_counter, "invoice", global_month),
@@ -332,9 +341,10 @@ def _simulate_account(acct: Account, tx_counter: dict) -> list[dict]:
             acct.active_users = max(0.0, acct.active_users + random.uniform(-2, 5)
                                      + (acct.active_users * 0.03 if total_change > 0 else -acct.active_users * 0.02 if total_change < 0 else 0))
             acct.feature_adoption_rate = min(0.98, max(0.0, acct.feature_adoption_rate + random.uniform(-0.01, 0.02)))
-            incident = random.random() < 0.08
-            acct.error_rate = round(max(0.0, min(0.35, (0.08 if incident else 0.015) + random.uniform(-0.005, 0.01))), 6)
-            acct.tickets_count = max(0, round(acct.tickets_count * 0.5 + (random.uniform(2, 6) if incident else random.uniform(0, 1.5))))
+            reliability_incident = reliability_incident or random.random() < 0.08
+            support_incident = support_incident or random.random() < 0.08
+            acct.error_rate = round(max(0.0, min(0.35, (0.08 if reliability_incident else 0.015) + random.uniform(-0.005, 0.01))), 6)
+            acct.tickets_count = max(0, round(acct.tickets_count * 0.5 + (random.uniform(2, 6) if support_incident else random.uniform(0, 1.5))))
 
             if terminal_churn:
                 acct.churned_at = global_month

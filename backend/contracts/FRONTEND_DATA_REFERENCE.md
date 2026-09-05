@@ -67,6 +67,31 @@ account simply has no row before its signup month or after it churns.
   pricing lever**: present in the data but not surfaced as a breakdown
   dimension beyond the segment rollup use above.
 
+## Optional feature: systemic risk graph
+
+`backend/risk_graph/risk_graph_engine.py` (networkx + pandas) models the
+same dataset as a directed, weighted graph -- operational risk signals
+(reliability incidents, support-ticket friction, payment delays) flowing
+through financial-consequence nodes (SLA credits, refunds, contractions,
+churn) into customer accounts -- and answers a different question than
+VarianceCard does: not "what changed," but "which accounts sit downstream
+of the most systemic risk, and through which causal path."
+
+`analyze_account_risk(csv_path)` returns, per account: a PageRank-based
+`graph_pagerank_risk_score` ("Cascade Risk Index"), `account_vulnerability_score`
+(weighted in-degree), `primary_risk_driver_node`, the actual
+`cascading_loss_paths` (source -> consequence -> account, with dollar
+weights), plus `risk_amplifier_ranking` (which operational risk source
+does the most aggregate damage) and `json_graph_data` (`nx.node_link_data`,
+ready for a force-directed graph viz). Run
+`python3 -m backend.risk_graph.demo_risk_graph` for a live example --
+it correctly surfaces the seeded SLA-credit-shock account (ACC-0002) as
+the #1 systemic risk, with a clean traceable path back to the reliability
+incident that caused it.
+
+This is fully additive: it doesn't touch `Variance`/`Driver`/`Explanation`
+or any existing code, and nothing else depends on it.
+
 ## Rule for the frontend build
 
 Build against `VarianceCard` (`backend/contracts/frontend_view.py`) and
