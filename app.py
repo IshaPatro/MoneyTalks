@@ -823,20 +823,6 @@ with tab_overview:
 
     with agent_col:
         with st.container(key="agent_panel"):
-            st.markdown(
-                "<div class='agent-head'><div><div class='agent-title'>🐋 Whale Agent</div>"
-                "<div class='agent-sub'>Ask your revenue data</div></div>"
-                "<div class='agent-badge'>● ONLINE</div></div>", unsafe_allow_html=True,
-            )
-            donut_col, risk_copy_col = st.columns([1, 1.35])
-            with donut_col:
-                st.plotly_chart(risk_donut(top_share, concentration_risk), width="stretch", config={"displayModeBar": False})
-            with risk_copy_col:
-                st.markdown(
-                    f"<div class='risk-copy {'risk' if concentration_risk else 'positive'}'><strong>{risk_level}</strong>"
-                    f"<span>{html.escape(whale)} controls {top_share:.0%} of recurring revenue. "
-                    f"That is {money(whale_mrr, True)} of monthly exposure.</span></div>", unsafe_allow_html=True,
-                )
 
             if "agent_messages" not in st.session_state:
                 st.session_state.agent_messages = []
