@@ -28,13 +28,18 @@ import networkx as nx
 DATA_PATH = ROOT / "data" / "subscription_accounts.csv"
 LOGO_PATH = ROOT / "assets" / "logo.png"
 
-BLACK = "#000000"
-DARK_BLUE = "#184D87"
-LIGHT_BLUE = "#33A1DD"
-TEAL = "#3AC0EF"
+# Apple system palette, light appearance.
+INK = "#1D1D1F"
+SECONDARY = "#6E6E73"
+HAIRLINE = "rgba(0,0,0,.08)"
 WHITE = "#FFFFFF"
-GREEN = "#35D07F"
-RED = "#FF5C6C"
+BLUE = "#0071E3"
+GREEN = "#34C759"
+RED = "#FF3B30"
+ORANGE = "#FF9500"
+GRAY = "#D2D2D7"
+FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+HOVER = dict(bgcolor=WHITE, bordercolor=GRAY, font=dict(color=INK, family=FONT, size=12))
 
 st.set_page_config(
     page_title="WhaleWatch | CFO Revenue Intelligence",
@@ -131,20 +136,28 @@ def chart_base() -> go.Figure:
     fig.update_layout(
         autosize=True,
         height=275,
-        margin=dict(l=12, r=14, t=30, b=28),
+        margin=dict(l=8, r=12, t=30, b=24),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.62)", size=10),
-        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
+        font=dict(family=FONT, color=SECONDARY, size=11),
+        hoverlabel=HOVER,
         legend=dict(
             orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
-            font=dict(color="rgba(255,255,255,.58)", size=9),
+            font=dict(color=SECONDARY, size=11),
         ),
     )
-    fig.update_xaxes(showgrid=False, zeroline=False, automargin=True, tickfont=dict(color="rgba(255,255,255,.46)"))
-    fig.update_yaxes(
-        gridcolor="rgba(255,255,255,.07)", zeroline=False, automargin=True,
-        tickfont=dict(color="rgba(255,255,255,.46)"),
+    fig.update_xaxes(showgrid=False, zeroline=False, automargin=True, linecolor=HAIRLINE, tickfont=dict(color=SECONDARY))
+    fig.update_yaxes(gridcolor="rgba(0,0,0,.06)", zeroline=False, automargin=True, tickfont=dict(color=SECONDARY))
+    return fig
+
+
+def donut_layout(fig: go.Figure, legend_x: float, legend_size: int = 11) -> go.Figure:
+    fig.update_layout(
+        height=275, margin=dict(l=2, r=2, t=8, b=8),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family=FONT, color=SECONDARY, size=11),
+        legend=dict(x=legend_x, y=.5, xanchor="left", yanchor="middle", font=dict(color=SECONDARY, size=legend_size), bgcolor="rgba(0,0,0,0)"),
+        hoverlabel=HOVER,
     )
     return fig
 
@@ -154,21 +167,19 @@ def revenue_quality_chart(monthly: pd.DataFrame) -> go.Figure:
     fig.add_trace(
         go.Scatter(
             x=monthly["period"], y=monthly["total_mrr"], name="Total MRR",
-            mode="lines+markers", line=dict(color=LIGHT_BLUE, width=3, shape="spline"),
-            marker=dict(size=6, color=WHITE, line=dict(color=LIGHT_BLUE, width=2)),
-            fill="tozeroy", fillcolor="rgba(51,161,221,.12)",
-            hovertemplate="<b>%{x|%b}</b><br>Total MRR $%{y:,.0f}<extra></extra>",
+            mode="lines", line=dict(color=BLUE, width=2.5, shape="spline"),
+            fill="tozeroy", fillcolor="rgba(0,113,227,.08)",
+            hovertemplate="<b>%{x|%b %Y}</b><br>Total MRR $%{y:,.0f}<extra></extra>",
         )
     )
     fig.add_trace(
         go.Scatter(
-            x=monthly["period"], y=monthly["underlying_mrr"], name="MRR ex-largest",
-            mode="lines+markers", line=dict(color=TEAL, width=2, dash="dot", shape="spline"),
-            marker=dict(size=5, color=TEAL),
-            hovertemplate="<b>%{x|%b}</b><br>MRR ex-whale $%{y:,.0f}<extra></extra>",
+            x=monthly["period"], y=monthly["underlying_mrr"], name="Excluding largest account",
+            mode="lines", line=dict(color="#86868B", width=2, dash="dot", shape="spline"),
+            hovertemplate="<b>%{x|%b %Y}</b><br>Ex-largest $%{y:,.0f}<extra></extra>",
         )
     )
-    fig.update_xaxes(tickformat="%b", dtick="M1")
+    fig.update_xaxes(tickformat="%b", dtick="M2")
     fig.update_yaxes(tickprefix="$", tickformat="~s")
     return fig
 
@@ -182,27 +193,21 @@ def concentration_chart(current: pd.DataFrame) -> go.Figure:
     display = ranked.head(visible_count)[["customer", "mrr"]].copy()
     remaining_count = max(len(ranked) - visible_count, 0)
     display.loc[len(display)] = [f"Other {remaining_count:,} accounts", float(ranked.iloc[visible_count:]["mrr"].sum())]
-    colors = ["#FF5C6C", "#184D87", "#3AC0EF", "#7C5CFC", "#F5A623", "#FF7EB6", "#00C2A8", "#FFD166", "#33A1DD"]
+    # The whale in red; everyone else on a quiet blue ramp, remainder in gray.
+    colors = [signal_color, "#0071E3", "#3A8EEA", "#5EA3EE", "#82B8F2", "#A5CDF6", "#C2DDF9", "#DCEBFB", GRAY]
     fig = go.Figure(go.Pie(
-        labels=display["customer"], values=display["mrr"], hole=.58, sort=False, direction="clockwise",
-        marker=dict(colors=colors, line=dict(color=BLACK, width=2)),
-        pull=[.025] + [0] * (len(display) - 1), textinfo="none",
+        labels=display["customer"], values=display["mrr"], hole=.68, sort=False, direction="clockwise",
+        marker=dict(colors=colors, line=dict(color=WHITE, width=2)),
+        textinfo="none",
         hovertemplate="<b>%{label}</b><br>MRR $%{value:,.0f}<br>%{percent}<extra></extra>",
         domain=dict(x=[0, .57], y=[0, 1]),
     ))
     fig.add_annotation(
         x=.232, y=.5, xref="paper", yref="paper", showarrow=False,
-        text=f"<b>{top_share:.0%}</b><br><span style='font-size:10px'>TOP 1</span>",
-        font=dict(color=signal_color, size=20),
+        text=f"<b>{top_share:.0%}</b><br><span style='font-size:11px;color:{SECONDARY}'>Top account</span>",
+        font=dict(color=INK, size=24, family=FONT),
     )
-    fig.update_layout(
-        height=275, margin=dict(l=2, r=2, t=8, b=8),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.68)", size=9),
-        legend=dict(x=.60, y=.5, xanchor="left", yanchor="middle", font=dict(color="rgba(255,255,255,.66)", size=8), bgcolor="rgba(0,0,0,0)"),
-        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
-    )
-    return fig
+    return donut_layout(fig, legend_x=.62)
 
 
 def bridge_chart(opening: float, expansion: float, losses: float, closing: float) -> go.Figure:
@@ -212,12 +217,12 @@ def bridge_chart(opening: float, expansion: float, losses: float, closing: float
             x=["Opening", "Expansion", "Losses", "Closing"],
             y=[opening, expansion, losses, closing],
             measure=["absolute", "relative", "relative", "total"],
-            connector=dict(line=dict(color="rgba(255,255,255,.18)", width=1)),
+            connector=dict(line=dict(color=GRAY, width=1, dash="dot")),
             increasing=dict(marker=dict(color=GREEN)),
             decreasing=dict(marker=dict(color=RED)),
-            totals=dict(marker=dict(color=LIGHT_BLUE)),
+            totals=dict(marker=dict(color=BLUE)),
             text=[money(opening, True), money(expansion, True, True), money(losses, True, True), money(closing, True)],
-            textposition="outside", textfont=dict(color=WHITE, size=9),
+            textposition="outside", textfont=dict(color=INK, size=11),
             hovertemplate="<b>%{x}</b><br>%{text}<extra></extra>",
         )
     )
@@ -232,44 +237,31 @@ def regime_state_chart(current: pd.DataFrame) -> go.Figure:
     values = [int(state_counts.get(label.lower(), 0)) for label in labels]
     total = sum(values)
     fig = go.Figure(go.Pie(
-        labels=labels, values=values, sort=False, direction="clockwise",
-        marker=dict(colors=[GREEN, LIGHT_BLUE, RED], line=dict(color=BLACK, width=2)),
-        texttemplate="<b>%{label}</b><br>%{percent:.1%}", textposition="inside",
-        insidetextorientation="horizontal", textfont=dict(color=WHITE, size=11),
+        labels=labels, values=values, hole=.68, sort=False, direction="clockwise",
+        marker=dict(colors=[GREEN, BLUE, RED], line=dict(color=WHITE, width=2)),
+        textinfo="none",
         hovertemplate="<b>%{label}</b><br>%{value:,.0f} accounts<br>%{percent:.1%}<extra></extra>",
-        domain=dict(x=[0, .72], y=[0, 1]),
+        domain=dict(x=[0, .57], y=[0, 1]),
     ))
-    fig.update_layout(
-        height=275, margin=dict(l=2, r=2, t=8, b=8),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.68)", size=9),
-        legend=dict(x=.76, y=.5, xanchor="left", yanchor="middle", font=dict(color="rgba(255,255,255,.66)", size=9), bgcolor="rgba(0,0,0,0)"),
-        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
-        uniformtext_minsize=10, uniformtext_mode="hide",
-    )
     fig.add_annotation(
-        x=.76, y=.33, xref="paper", yref="paper", showarrow=False, xanchor="left",
-        text=f"<span style='color:rgba(255,255,255,.40)'>{total:,} accounts</span>", font=dict(size=9),
+        x=.232, y=.5, xref="paper", yref="paper", showarrow=False,
+        text=f"<b>{total:,}</b><br><span style='font-size:11px;color:{SECONDARY}'>accounts</span>",
+        font=dict(color=INK, size=24, family=FONT),
     )
-    return fig
+    return donut_layout(fig, legend_x=.62, legend_size=12)
 
 
 def industry_distribution_chart(current: pd.DataFrame) -> go.Figure:
-    industry_counts = current["industry"].fillna("Unknown").value_counts().sort_values(ascending=False)
-    colors = ["#00C2FF", "#7C5CFC", "#FFB020", "#FF5C6C", "#00C2A8", "#F15BB5", "#9BDE4F", "#FF8A4C", "#66A3FF", "#C8A2FF"]
-    fig = go.Figure(go.Pie(
-        labels=industry_counts.index, values=industry_counts.values, sort=False, direction="clockwise",
-        marker=dict(colors=colors[:len(industry_counts)], line=dict(color=BLACK, width=2)),
-        textinfo="none", hovertemplate="<b>%{label}</b><br>%{value:,.0f} accounts<br>%{percent:.1%}<extra></extra>",
-        domain=dict(x=[0, .58], y=[0, 1]),
+    industry_counts = current["industry"].fillna("Unknown").value_counts().sort_values(ascending=True)
+    fig = chart_base()
+    fig.add_trace(go.Bar(
+        x=industry_counts.values, y=industry_counts.index, orientation="h",
+        marker=dict(color=BLUE, cornerradius=4),
+        hovertemplate="<b>%{y}</b><br>%{x:,.0f} accounts<extra></extra>",
     ))
-    fig.update_layout(
-        height=275, margin=dict(l=0, r=0, t=8, b=8),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, Arial, sans-serif", color="rgba(255,255,255,.68)", size=8),
-        legend=dict(x=.61, y=.5, xanchor="left", yanchor="middle", font=dict(color="rgba(255,255,255,.66)", size=7), bgcolor="rgba(0,0,0,0)"),
-        hoverlabel=dict(bgcolor=BLACK, bordercolor=TEAL, font_color=WHITE),
-    )
+    fig.update_layout(showlegend=False, bargap=.38, margin=dict(l=8, r=12, t=12, b=20))
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(0,0,0,.06)", nticks=6)
+    fig.update_yaxes(showgrid=False)
     return fig
 
 
@@ -283,7 +275,7 @@ def account_health_chart(current: pd.DataFrame) -> go.Figure:
     ).clip(-1, 2)
     merged["status"] = merged["growth"].apply(lambda value: "Growing" if value >= 0 else "Declining / churned")
     fig = chart_base()
-    for status, color in [("Growing", GREEN), ("Declining / churned", RED)]:
+    for status, color in [("Growing", BLUE), ("Declining / churned", RED)]:
         subset = merged[merged["status"].eq(status)]
         fig.add_trace(
             go.Scatter(
@@ -292,14 +284,14 @@ def account_health_chart(current: pd.DataFrame) -> go.Figure:
                 marker=dict(
                     color=color,
                     size=(subset["current_mrr"].clip(lower=10).pow(.5) * 1.2).clip(lower=6, upper=22),
-                    line=dict(color=WHITE, width=1), opacity=.86,
+                    line=dict(color=WHITE, width=1), opacity=.75,
                 ),
                 hovertemplate="<b>%{text}</b><br>Prior MRR $%{x:,.0f}<br>Growth %{y:+.1%}<extra></extra>",
             )
         )
-    fig.add_hline(y=0, line_color="rgba(255,255,255,.25)", line_width=1)
-    fig.update_xaxes(title="Prior MRR", title_font=dict(size=9), tickprefix="$", tickformat="~s")
-    fig.update_yaxes(title="Growth", title_font=dict(size=9), tickformat="+.0%")
+    fig.add_hline(y=0, line_color=GRAY, line_width=1)
+    fig.update_xaxes(title="Prior MRR", title_font=dict(size=11), tickprefix="$", tickformat="~s")
+    fig.update_yaxes(title="Growth", title_font=dict(size=11), tickformat="+.0%")
     return fig
 
 
@@ -309,13 +301,13 @@ def risk_donut(top_share: float, is_risk: bool) -> go.Figure:
         go.Pie(
             values=[top_share, 1 - top_share], labels=["Top customer", "All others"],
             hole=.76, sort=False, direction="clockwise",
-            marker=dict(colors=[indicator_color, DARK_BLUE], line=dict(color=BLACK, width=3)),
+            marker=dict(colors=[indicator_color, GRAY], line=dict(color=WHITE, width=3)),
             textinfo="none", hovertemplate="<b>%{label}</b><br>%{percent}<extra></extra>",
         )
     )
     fig.add_annotation(
-        text=f"<b>{top_share:.0%}</b><br><span style='font-size:9px'>TOP 1</span>",
-        x=.5, y=.5, showarrow=False, font=dict(color=indicator_color, size=20),
+        text=f"<b>{top_share:.0%}</b><br><span style='font-size:10px'>Top account</span>",
+        x=.5, y=.5, showarrow=False, font=dict(color=INK, size=20, family=FONT),
     )
     fig.update_layout(
         height=148, margin=dict(l=2, r=2, t=2, b=2), showlegend=False,
@@ -332,7 +324,7 @@ def load_risk_result(path: Path):
 
 def risk_network_chart(graph_data: dict) -> go.Figure:
     """Force-directed layout of the risk graph: risk sources (red) ->
-    financial consequences (amber) -> accounts (blue, sized by MRR)."""
+    financial consequences (orange) -> accounts (blue, sized by MRR)."""
     graph = nx.node_link_graph(graph_data, edges="links")
     pos = nx.spring_layout(graph, seed=7, k=0.6)
 
@@ -349,21 +341,21 @@ def risk_network_chart(graph_data: dict) -> go.Figure:
         if kind == "risk_source":
             node_color.append(RED); node_size.append(22)
         elif kind == "financial_consequence":
-            node_color.append("#F5A623"); node_size.append(18)
+            node_color.append(ORANGE); node_size.append(18)
         else:
-            node_color.append(LIGHT_BLUE); node_size.append(10)
+            node_color.append(BLUE); node_size.append(10)
         node_text.append(node)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=edge_x, y=edge_y, mode="lines",
-                              line=dict(color="rgba(255,255,255,.18)", width=1), hoverinfo="none"))
+                              line=dict(color="rgba(0,0,0,.10)", width=1), hoverinfo="none"))
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y, mode="markers", text=node_text, hovertemplate="<b>%{text}</b><extra></extra>",
-        marker=dict(color=node_color, size=node_size, line=dict(color=WHITE, width=1)),
+        marker=dict(color=node_color, size=node_size, line=dict(color=WHITE, width=1.5)),
     ))
     fig.update_layout(
         showlegend=False, height=420, margin=dict(l=4, r=4, t=4, b=4),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hoverlabel=HOVER,
     )
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
@@ -391,9 +383,7 @@ def agent_answer(
 
     if any(word in q for word in _CLAIM_WORDS):
         verdict = verify_narrative_claim(question, portfolio, engine)
-        icon = {"supported": "✅", "contradicted": "🚨", "partially_supported": "⚠️",
-                "unsupported": "❌", "unverifiable": "❓"}.get(verdict.verdict, "")
-        return f"{icon} **{verdict.verdict.replace('_', ' ').title()}** — {verdict.reasoning}"
+        return f"{verdict.verdict.replace('_', ' ').capitalize()}. {verdict.reasoning}"
 
     if any(word in q for word in ("whale", "concentration", "risk", "fragile")):
         drivers = engine.breakdown_variance(portfolio.variance_id, dimension="account", top_n=1)
@@ -436,200 +426,202 @@ def agent_answer(
 st.markdown(
     """
     <style>
-    :root { --black:#000; --navy:#184D87; --blue:#33A1DD; --teal:#3AC0EF; --white:#fff; --green:#35D07F; --red:#FF5C6C; }
+    :root {
+      --bg:#F5F5F7; --card:#FFFFFF; --ink:#1D1D1F; --secondary:#6E6E73; --tertiary:#86868B;
+      --hairline:rgba(0,0,0,.08); --fill:rgba(118,118,128,.12);
+      --blue:#0071E3; --green:#248A3D; --red:#D70015; --orange:#C93400;
+      --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);
+      --radius:18px;
+    }
     * { box-sizing:border-box; }
-    html, body, [class*="css"] { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
-    .stApp { color:var(--white); background:radial-gradient(circle at 82% -8%,rgba(58,192,239,.13),transparent 27rem),radial-gradient(circle at -8% 52%,rgba(24,77,135,.18),transparent 28rem),var(--black); }
+    html, body, .stApp, .stApp *:not([data-testid="stIconMaterial"]):not(svg *) {
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Helvetica,Arial,sans-serif!important;
+      -webkit-font-smoothing:antialiased;
+    }
+    /* Streamlit gives markdown blocks a -1rem bottom margin; cancel it for card-like blocks. */
+    .metric-card,.kpi-strip,.section-line,.graph-legend,.evidence-chip-row:last-child { margin-bottom:1rem; }
+    .stApp { color:var(--ink); background:var(--bg); }
     header[data-testid="stHeader"] { background:transparent; height:0; }
     #MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"] { display:none!important; }
-    .block-container { max-width:none!important; width:100%!important; padding:.72rem 1.25rem 1.2rem!important; }
-    [data-testid="stVerticalBlock"] { gap:.52rem; }
-    [data-testid="stHorizontalBlock"] { align-items:stretch; gap:.65rem; }
-    h1,h2,h3,p { color:var(--white); }
+    .block-container { max-width:1440px!important; padding:0 2rem 2.5rem!important; }
+    [data-testid="stVerticalBlock"] { gap:.9rem; }
+    [data-testid="stHorizontalBlock"] { align-items:stretch; gap:.9rem; }
+    h1,h2,h3,p { color:var(--ink); }
 
-    .topbar { height:58px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(51,161,221,.18); }
-    .brand { display:flex; align-items:center; gap:.55rem; }
-    .brand-logo { width:46px; height:46px; display:grid; place-items:center; overflow:hidden; border-radius:50%; }
-    .brand-logo img { width:46px; height:46px; object-fit:contain; transform:scale(1.72); }
-    .brand-name { font-size:1.28rem; line-height:1; font-weight:850; letter-spacing:-.045em; }
-    .brand-name span { color:var(--teal); }
-    .tagline { margin-top:.23rem; color:rgba(255,255,255,.52); font-size:.65rem; }
-    .top-actions { display:flex; align-items:center; gap:.55rem; }
-    .period-pill,.live-pill { padding:.4rem .62rem; border:1px solid rgba(51,161,221,.20); border-radius:999px; background:rgba(24,77,135,.16); color:rgba(255,255,255,.62); font-size:.55rem; font-weight:750; letter-spacing:.07em; }
-    .live-pill { color:var(--teal); }
-    .pulse { display:inline-block; width:6px; height:6px; margin-right:.36rem; border-radius:50%; background:var(--teal); box-shadow:0 0 0 4px rgba(58,192,239,.12); animation:pulse 1.8s infinite; }
-    @keyframes pulse { 50% { box-shadow:0 0 0 8px rgba(58,192,239,0); } }
+    /* -- top bar: translucent, hairline divider -- */
+    .topbar { position:sticky; top:0; z-index:10; height:64px; display:flex; align-items:center; justify-content:space-between;
+      margin:0 -2rem; padding:0 2rem; background:rgba(245,245,247,.8); backdrop-filter:saturate(180%) blur(20px);
+      -webkit-backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid var(--hairline); }
+    .brand { display:flex; align-items:center; gap:.65rem; }
+    .brand-logo { width:34px; height:34px; display:grid; place-items:center; overflow:hidden; border-radius:50%; }
+    .brand-logo img { width:34px; height:34px; object-fit:contain; transform:scale(1.72); }
+    .brand-name { font-size:1.15rem; line-height:1; font-weight:600; letter-spacing:-.02em; color:var(--ink); }
+    .brand-name span { color:var(--ink); }
+    .tagline { margin-top:.2rem; color:var(--tertiary); font-size:.75rem; }
+    .top-actions { display:flex; align-items:center; gap:.5rem; }
+    .period-pill,.live-pill { padding:.35rem .75rem; border-radius:999px; background:var(--fill); color:var(--secondary); font-size:.75rem; font-weight:500; }
+    .pulse { display:inline-block; width:6px; height:6px; margin-right:.4rem; border-radius:50%; background:#34C759; vertical-align:middle; }
 
-    .section-line { display:flex; align-items:end; justify-content:space-between; min-height:46px; padding-top:.12rem; }
-    .eyebrow { color:var(--teal); text-transform:uppercase; letter-spacing:.15em; font-size:.52rem; font-weight:850; }
-    .section-title { margin:.13rem 0 0; color:var(--white); font-size:1.03rem; font-weight:780; letter-spacing:-.025em; }
-    .section-sub { color:rgba(255,255,255,.43); font-size:.6rem; }
-    div[data-baseweb="select"]>div { min-height:35px; color:var(--white); background:rgba(24,77,135,.18); border-color:rgba(51,161,221,.28); font-size:.67rem; }
-    ul[role="listbox"] { background:var(--black); border:1px solid var(--teal); }
-    li[role="option"] { color:var(--white); }
+    /* -- tabs as a segmented control -- */
+    [data-testid="stTabs"] [role="tablist"] { gap:2px; width:fit-content; margin:1.2rem 0 .6rem; padding:2px; border:none; border-radius:9px; background:var(--fill); box-shadow:none; }
+    [data-testid="stTabs"] [role="tablist"]::before,[data-testid="stTabs"] [role="tablist"]::after { display:none; }
+    [data-testid="stTabs"] [role="tab"] { height:30px; padding:0 1.1rem; border:none; border-radius:7px; background:transparent; }
+    [data-testid="stTabs"] [role="tab"] p { font-size:.82rem; font-weight:500; color:var(--ink); }
+    [data-testid="stTabs"] [role="tab"][data-selected="true"] { background:var(--card); box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04); }
+    [data-testid="stTabs"] .react-aria-SelectionIndicator { display:none; }
 
-    .metric-card { height:92px; padding:.66rem .75rem; border:1px solid rgba(51,161,221,.20); border-radius:12px; background:linear-gradient(145deg,rgba(24,77,135,.20),rgba(0,0,0,.76)); box-shadow:0 14px 36px rgba(0,0,0,.34); position:relative; overflow:hidden; }
-    .metric-card:after { content:""; position:absolute; left:0; bottom:0; width:100%; height:2px; background:var(--blue); }
-    .metric-card.positive:after { background:var(--green); }
-    .metric-card.risk:after { background:var(--red); }
-    .metric-head { display:flex; align-items:center; justify-content:space-between; color:rgba(255,255,255,.46); font-size:.49rem; font-weight:850; letter-spacing:.1em; text-transform:uppercase; }
-    .metric-head i { width:19px; height:19px; display:grid; place-items:center; color:var(--teal); background:rgba(58,192,239,.09); border:1px solid rgba(58,192,239,.17); border-radius:6px; font-size:.57rem; font-style:normal; }
-    .metric-card.positive .metric-head i,.metric-card.positive .metric-detail b { color:var(--green); }
-    .metric-card.risk .metric-head i,.metric-card.risk .metric-detail b { color:var(--red); }
-    .metric-value { margin:.35rem 0 .18rem; color:var(--white); font-size:1.22rem; line-height:1; font-weight:850; letter-spacing:-.04em; }
-    .metric-detail { color:rgba(255,255,255,.44); font-size:.55rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .metric-detail b { color:var(--teal); }
+    /* -- section headers -- */
+    .section-line { display:flex; align-items:end; justify-content:space-between; gap:2rem; padding-top:.6rem; }
+    .eyebrow { color:var(--tertiary); font-size:.8rem; font-weight:500; }
+    .section-title { margin:.15rem 0 0; color:var(--ink); font-size:1.75rem; font-weight:700; letter-spacing:-.025em; line-height:1.15; }
+    .section-sub { max-width:520px; color:var(--tertiary); font-size:.78rem; line-height:1.45; text-align:right; }
+    [data-testid="stSelectbox"] [role="group"] { min-height:38px; background:var(--card)!important; border:1px solid rgba(0,0,0,.12)!important; border-radius:10px!important; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    [data-testid="stSelectbox"] input { color:var(--ink)!important; font-size:.88rem!important; }
+    [data-testid="stWidgetLabel"] p { color:var(--secondary)!important; font-size:.78rem!important; font-weight:500!important; }
 
-    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4,.st-key-chart_panel_5,.st-key-chart_panel_6,.st-key-agent_panel { border:1px solid rgba(51,161,221,.18); border-radius:14px; background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.66)); box-shadow:0 16px 42px rgba(0,0,0,.34); overflow:hidden; }
-    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4,.st-key-chart_panel_5,.st-key-chart_panel_6 { padding:.68rem .72rem .38rem; }
-    .chart-heading { display:flex; justify-content:space-between; align-items:center; }
-    .chart-title { color:var(--white); font-size:.75rem; font-weight:750; }
-    .chart-meta { color:rgba(255,255,255,.34); font-size:.49rem; letter-spacing:.06em; text-transform:uppercase; }
-    .chart-meta.risk { display:flex; align-items:center; gap:.34rem; padding:.3rem .5rem; color:var(--red); background:rgba(255,92,108,.12); border:1px solid rgba(255,92,108,.48); border-radius:999px; box-shadow:0 0 18px rgba(255,92,108,.20); font-size:.52rem; font-weight:900; letter-spacing:.09em; }
-    .chart-meta.risk:before { content:""; width:6px; height:6px; flex:0 0 6px; border-radius:50%; background:var(--red); box-shadow:0 0 0 0 rgba(255,92,108,.55); animation:risk-pulse 1.8s ease-out infinite; }
-    @keyframes risk-pulse { 70% { box-shadow:0 0 0 6px rgba(255,92,108,0); } 100% { box-shadow:0 0 0 0 rgba(255,92,108,0); } }
-    .chart-meta.positive { color:var(--green); font-weight:850; }
+    /* -- KPI cards -- */
+    .metric-card { height:112px; padding:1rem 1.1rem; border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); }
+    .metric-head { display:flex; align-items:center; justify-content:space-between; color:var(--secondary); font-size:.78rem; font-weight:500; }
+    .metric-head i { display:none; }
+    .metric-value { margin:.45rem 0 .3rem; color:var(--ink); font-size:1.7rem; line-height:1; font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+    .metric-detail { color:var(--tertiary); font-size:.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .metric-detail b { font-weight:600; color:var(--ink); }
+    .metric-card.positive .metric-detail b { color:var(--green); }
+    .metric-card.risk .metric-detail b { color:var(--red); }
+
+    /* -- cards -- */
+    .st-key-chart_panel,.st-key-chart_panel_2,.st-key-chart_panel_3,.st-key-chart_panel_4,.st-key-chart_panel_5,.st-key-chart_panel_6,
+    .st-key-agent_panel,.st-key-chart_panel_risk_amp,.st-key-chart_panel_risk_net,.st-key-chart_panel_risk_story,
+    .st-key-chart_panel_risk_table,.st-key-chart_panel_risk_trace,.st-key-factcheck_input,.st-key-factcheck_history,.st-key-apikey_panel {
+      border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); overflow:hidden; padding:1.1rem 1.2rem .7rem;
+    }
+    .chart-heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+    .chart-title { color:var(--ink); font-size:.95rem; font-weight:600; letter-spacing:-.01em; }
+    .chart-meta { color:var(--tertiary); font-size:.75rem; }
+    .chart-meta.risk,.chart-meta.positive { padding:.2rem .6rem; border-radius:999px; font-weight:500; }
+    .chart-meta.risk { color:var(--red); background:rgba(255,59,48,.10); }
+    .chart-meta.positive { color:var(--green); background:rgba(52,199,89,.12); }
     div[data-testid="stPlotlyChart"] { background:transparent!important; }
-    .executive-strip { padding:.58rem .68rem .62rem; border:1px solid rgba(51,161,221,.18); border-radius:13px; background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.72)); box-shadow:0 14px 38px rgba(0,0,0,.30); }
-    .executive-strip-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
-    .executive-strip-title { color:var(--white); font-size:.68rem; font-weight:800; }
-    .executive-strip-meta { color:var(--teal); font-size:.46rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
-    .inference-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.4rem; }
-    .inference-grid .story-step { min-height:58px; padding:.42rem; border:1px solid rgba(255,255,255,.08); border-radius:9px; background:rgba(255,255,255,.025); border-top:none; }
-    .inference-grid .story-label { font-size:.43rem; }
-    .inference-grid .story-text { font-size:.52rem; line-height:1.32; }
 
-    .st-key-agent_panel { min-height:calc(100vh - 165px); padding:.75rem; border-color:rgba(58,192,239,.31); background:linear-gradient(165deg,rgba(24,77,135,.37),rgba(0,0,0,.91) 48%); }
-    .st-key-agent_panel>div[data-testid="stVerticalBlock"] { min-height:calc(100vh - 190px); }
-    .agent-head { display:flex; justify-content:space-between; align-items:start; padding-bottom:.55rem; border-bottom:1px solid rgba(255,255,255,.10); }
-    .agent-title { color:var(--white); font-size:.82rem; font-weight:820; }
-    .agent-sub { margin-top:.1rem; color:rgba(255,255,255,.42); font-size:.54rem; }
-    .agent-badge { color:var(--teal); font-size:.48rem; font-weight:850; letter-spacing:.08em; }
-    .risk-summary { display:grid; grid-template-columns:42% 58%; align-items:center; margin:.35rem 0 .4rem; }
-    .risk-copy strong { display:block; color:var(--red); font-size:.8rem; }
-    .risk-copy.positive strong { color:var(--green); }
-    .risk-copy span { display:block; margin-top:.16rem; color:rgba(255,255,255,.50); font-size:.53rem; line-height:1.38; }
-    .story-step { display:grid; grid-template-columns:22px 1fr; gap:.45rem; padding:.42rem 0; border-top:1px solid rgba(255,255,255,.08); }
-    .story-step i { width:20px; height:20px; display:grid; place-items:center; color:var(--teal); background:rgba(58,192,239,.09); border:1px solid rgba(58,192,239,.17); border-radius:6px; font-size:.48rem; font-style:normal; font-weight:850; }
-    .story-step.risk i { color:var(--red); border-color:rgba(255,92,108,.28); background:rgba(255,92,108,.08); }
-    .story-step.positive i { color:var(--green); border-color:rgba(53,208,127,.25); background:rgba(53,208,127,.07); }
-    .story-label { color:rgba(255,255,255,.42); font-size:.46rem; font-weight:850; letter-spacing:.1em; text-transform:uppercase; }
-    .story-text { margin-top:.1rem; color:rgba(255,255,255,.73); font-size:.57rem; line-height:1.38; }
-    .story-text b { color:var(--white); }
-    .story-step.risk .story-text b { color:var(--red); }
-    .story-step.positive .story-text b { color:var(--green); }
-    .chat-welcome { min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-    .chat-welcome-logo { width:96px; height:96px; display:grid; place-items:center; overflow:hidden; border-radius:50%; }
-    .chat-welcome-logo img { width:96px; height:96px; object-fit:contain; transform:scale(1.68); filter:drop-shadow(0 0 30px rgba(58,192,239,.25)); animation:whale-float 2.4s ease-in-out infinite; }
-    .chat-welcome strong { margin-top:.7rem; color:var(--white); font-size:.9rem; }
-    .chat-welcome span { max-width:260px; margin-top:.3rem; color:rgba(255,255,255,.45); font-size:.6rem; line-height:1.5; }
-    .chat-history { max-height:320px; padding:.3rem .1rem; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--navy) transparent; }
-    .chat-role { margin-bottom:.16rem; color:rgba(255,255,255,.38); font-size:.44rem; font-weight:850; letter-spacing:.09em; text-transform:uppercase; }
-    .message-user,.message-agent { padding:.5rem .6rem; font-size:.6rem; line-height:1.45; border:1px solid rgba(255,255,255,.09); }
-    .message-user { margin:.4rem 0 .28rem 16%; color:var(--white); background:var(--blue); border-radius:10px 10px 3px 10px; }
-    .message-agent { margin:.28rem 8% .28rem 0; color:rgba(255,255,255,.78); background:rgba(255,255,255,.055); border-radius:10px 10px 10px 3px; }
+    /* -- executive readout -- */
+    .executive-strip { padding:1.1rem 1.2rem; border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); }
+    .executive-strip-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem; }
+    .executive-strip-title { color:var(--ink); font-size:.95rem; font-weight:600; }
+    .executive-strip-meta { color:var(--tertiary); font-size:.75rem; }
+    .inference-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.2rem; }
+    .inference-grid .story-step { padding:0; border-top:none; }
+
+    .story-step { display:grid; grid-template-columns:24px 1fr; gap:.6rem; padding:.7rem 0; border-top:1px solid var(--hairline); }
+    .story-step:first-of-type { border-top:none; }
+    .story-step i { width:22px; height:22px; display:grid; place-items:center; color:var(--secondary); background:var(--fill); border-radius:50%; font-size:.7rem; font-style:normal; font-weight:600; }
+    .story-step.risk i { color:#fff; background:#FF3B30; }
+    .story-step.positive i { color:#fff; background:#34C759; }
+    .story-label { color:var(--secondary); font-size:.75rem; font-weight:500; }
+    .story-text { margin-top:.15rem; color:var(--ink); font-size:.82rem; line-height:1.45; }
+    .story-text b { font-weight:600; color:var(--ink); }
+
+    /* -- agent panel -- */
+    .st-key-agent_panel { min-height:calc(100vh - 200px); padding:1.2rem; }
+    .st-key-agent_panel>div[data-testid="stVerticalBlock"] { min-height:calc(100vh - 230px); }
+    .chat-welcome { min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+    .chat-welcome-logo { width:72px; height:72px; display:grid; place-items:center; overflow:hidden; border-radius:50%; }
+    .chat-welcome-logo img { width:72px; height:72px; object-fit:contain; transform:scale(1.68); }
+    .chat-welcome strong { margin-top:.9rem; color:var(--ink); font-size:1.15rem; font-weight:600; letter-spacing:-.01em; }
+    .chat-welcome span { max-width:280px; margin-top:.35rem; color:var(--tertiary); font-size:.82rem; line-height:1.5; }
+    .chat-history { max-height:440px; padding:.3rem .1rem; overflow-y:auto; scrollbar-width:thin; }
+    .chat-role { display:none; }
+    .message-user,.message-agent { padding:.6rem .85rem; font-size:.85rem; line-height:1.45; border-radius:18px; }
+    .message-user { margin:.5rem 0 .3rem 18%; color:#fff; background:var(--blue); border-bottom-right-radius:6px; }
+    .message-agent { margin:.3rem 10% .3rem 0; color:var(--ink); background:#E9E9EB; border-bottom-left-radius:6px; }
     .st-key-agent_panel [data-testid="stForm"] { border:0; padding:0; margin-top:auto; }
-    .st-key-agent_panel .stTextInput input { min-height:32px; color:var(--white)!important; background:rgba(255,255,255,.055)!important; border:1px solid rgba(255,255,255,.14)!important; border-radius:8px!important; font-size:.58rem!important; }
-    .st-key-agent_panel .stTextInput input::placeholder { color:rgba(255,255,255,.34)!important; }
-    .st-key-agent_panel .stButton button { min-height:30px; width:100%; color:var(--white); background:var(--blue); border:1px solid var(--teal); border-radius:8px; font-size:.57rem; font-weight:820; }
-    [data-testid="stCaptionContainer"] { color:rgba(255,255,255,.29); font-size:.47rem; }
-    .loader-card { min-height:72vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-    .loader-card img { width:116px; height:116px; object-fit:contain; transform:scale(1.65); animation:whale-float 1.8s ease-in-out infinite; filter:drop-shadow(0 0 24px rgba(58,192,239,.30)); }
-    .loader-card strong { margin-top:.8rem; color:var(--white); font-size:1rem; }
-    .loader-card span { margin-top:.3rem; color:rgba(255,255,255,.48); font-size:.67rem; }
-    .loader-line { width:210px; height:3px; margin-top:1rem; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.08); }
-    .loader-line i { display:block; width:45%; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--blue),var(--teal)); animation:loader-scan 1.25s ease-in-out infinite; }
-    @keyframes whale-float { 50% { transform:scale(1.65) translateY(-5px); } }
-    @keyframes loader-scan { from { transform:translateX(-110%); } to { transform:translateX(245%); } }
+    [data-testid="stCaptionContainer"] { color:var(--tertiary); font-size:.72rem; }
 
-    /* -- API key bar (Overview tab) -- */
-    /* Global input/button theming -- Streamlit's testid structure for
-       stTextInput/stTextArea/buttons doesn't always match scoped
-       .st-key-* selectors, so style these app-wide by stable testid /
-       kind attribute rather than only inside specific containers. */
+    /* -- inputs & buttons -- */
     div[data-testid="stTextInputRootElement"], div[data-testid="stTextAreaRootElement"] {
-      background:rgba(255,255,255,.06)!important; border:1px solid rgba(255,255,255,.16)!important; border-radius:8px!important;
+      background:var(--card)!important; border:1px solid var(--hairline)!important; border-radius:10px!important;
     }
-    input[data-testid="stTextInputField"], textarea[data-testid="stTextAreaField"] {
-      color:var(--white)!important; background:transparent!important;
-      border:none!important; border-radius:8px!important;
-    }
-    input[data-testid="stTextInputField"]::placeholder, textarea[data-testid="stTextAreaField"]::placeholder { color:rgba(255,255,255,.36)!important; }
-    button[kind="secondary"], button[kind="secondaryFormSubmit"] { color:var(--white)!important; background:rgba(255,255,255,.06)!important; border:1px solid rgba(255,255,255,.16)!important; border-radius:8px!important; font-weight:700!important; }
-    button[kind="secondary"]:hover, button[kind="secondaryFormSubmit"]:hover { border-color:var(--teal)!important; color:var(--teal)!important; background:rgba(58,192,239,.08)!important; }
-    button[kind="secondary"] p, button[kind="secondaryFormSubmit"] p { color:inherit!important; }
+    div[data-testid="stTextInputRootElement"]:focus-within, div[data-testid="stTextAreaRootElement"]:focus-within { border-color:var(--blue)!important; box-shadow:0 0 0 3px rgba(0,113,227,.18); }
+    input[data-testid="stTextInputField"], textarea[data-testid="stTextAreaField"] { color:var(--ink)!important; background:transparent!important; border:none!important; font-size:.88rem!important; }
+    input[data-testid="stTextInputField"]::placeholder, textarea[data-testid="stTextAreaField"]::placeholder { color:var(--tertiary)!important; }
+    button[kind="secondary"], button[kind="secondaryFormSubmit"] { color:var(--blue)!important; background:var(--fill)!important; border:none!important; border-radius:980px!important; font-weight:500!important; }
+    button[kind="secondary"]:hover, button[kind="secondaryFormSubmit"]:hover { background:rgba(0,113,227,.12)!important; }
+    button[kind="secondary"] p, button[kind="secondaryFormSubmit"] p { color:inherit!important; font-size:.82rem!important; }
+    button[kind="primary"], .st-key-agent_panel button[kind="secondaryFormSubmit"] { color:#fff!important; background:var(--blue)!important; border:none!important; border-radius:980px!important; font-weight:500!important; }
+    button[kind="primary"]:hover, .st-key-agent_panel button[kind="secondaryFormSubmit"]:hover { background:#0077ED!important; }
+    button[kind="primary"] p { color:#fff!important; }
 
-    .st-key-apikey_panel { border:1px solid rgba(51,161,221,.20); border-radius:12px; background:linear-gradient(145deg,rgba(24,77,135,.16),rgba(0,0,0,.7)); padding:.6rem .9rem; margin-bottom:.9rem; }
+    /* -- API key row -- */
+    .st-key-apikey_panel { padding:.8rem 1.2rem; }
     .apikey-row { display:flex; align-items:center; gap:.7rem; }
-    .apikey-label { display:flex; align-items:center; gap:.4rem; color:rgba(255,255,255,.62); font-size:.6rem; font-weight:750; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
-    .llm-status { display:flex; align-items:center; gap:.35rem; font-size:.56rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:.28rem .6rem; border-radius:999px; white-space:nowrap; }
-    .llm-status.on { color:var(--green); background:rgba(53,208,127,.10); border:1px solid rgba(53,208,127,.28); }
-    .llm-status.off { color:rgba(255,255,255,.42); background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); }
-    .llm-status .dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
-    .st-key-apikey_panel .stTextInput input { min-height:32px; color:var(--white)!important; background:rgba(255,255,255,.06)!important; border:1px solid rgba(255,255,255,.16)!important; border-radius:8px!important; font-size:.62rem!important; }
-
-    /* -- shared panel styling for Risk Graph / Fact-Check tabs -- */
-    .st-key-chart_panel_risk_amp,.st-key-chart_panel_risk_net,.st-key-chart_panel_risk_story,
-    .st-key-chart_panel_risk_table,.st-key-chart_panel_risk_trace,.st-key-factcheck_input,.st-key-factcheck_history {
-      border:1px solid rgba(51,161,221,.18); border-radius:14px;
-      background:linear-gradient(145deg,rgba(24,77,135,.14),rgba(0,0,0,.66));
-      box-shadow:0 16px 42px rgba(0,0,0,.34); overflow:hidden; padding:.7rem .75rem .5rem;
-    }
+    .apikey-label { color:var(--secondary); font-size:.78rem; font-weight:500; white-space:nowrap; }
+    .llm-status { display:inline-flex; align-items:center; gap:.4rem; font-size:.75rem; font-weight:500; padding:.3rem .7rem; border-radius:999px; white-space:nowrap; }
+    .llm-status.on { color:var(--green); background:rgba(52,199,89,.12); }
+    .llm-status.off { color:var(--secondary); background:var(--fill); }
+    .llm-status .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
     /* -- KPI strip (Risk Graph tab) -- */
-    .kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:.6rem; margin-bottom:.85rem; }
-    .kpi-tile { padding:.62rem .72rem; border-radius:11px; border:1px solid rgba(51,161,221,.18); background:linear-gradient(145deg,rgba(24,77,135,.16),rgba(0,0,0,.7)); }
-    .kpi-tile .kpi-label { color:rgba(255,255,255,.46); font-size:.48rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
-    .kpi-tile .kpi-value { margin-top:.28rem; font-size:1.1rem; font-weight:850; color:var(--white); letter-spacing:-.03em; }
-    .kpi-tile .kpi-sub { margin-top:.1rem; font-size:.52rem; color:rgba(255,255,255,.4); }
+    .kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:.9rem; }
+    .kpi-tile { padding:1rem 1.1rem; border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); }
+    .kpi-tile .kpi-label { color:var(--secondary); font-size:.78rem; font-weight:500; }
+    .kpi-tile .kpi-value { margin-top:.4rem; font-size:1.5rem; font-weight:600; color:var(--ink); letter-spacing:-.025em; }
+    .kpi-tile .kpi-sub { margin-top:.2rem; font-size:.75rem; color:var(--tertiary); }
     .kpi-tile.crit .kpi-value { color:var(--red); }
-    .kpi-tile.warn .kpi-value { color:var(--teal); }
 
     /* -- severity pills + risk table -- */
-    .sev-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.16rem .5rem; border-radius:999px; font-size:.5rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
-    .sev-pill.critical { color:var(--red); background:rgba(255,92,108,.12); border:1px solid rgba(255,92,108,.3); }
-    .sev-pill.elevated { color:#f5c451; background:rgba(245,196,81,.10); border:1px solid rgba(245,196,81,.28); }
-    .sev-pill.normal { color:var(--teal); background:rgba(58,192,239,.09); border:1px solid rgba(58,192,239,.22); }
-    .risk-row { display:grid; grid-template-columns:1.1fr .9fr 1.3fr .9fr; align-items:center; gap:.5rem; padding:.5rem .15rem; border-top:1px solid rgba(255,255,255,.07); font-size:.63rem; }
-    .risk-row.head { color:rgba(255,255,255,.4); font-size:.5rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; border-top:none; padding-bottom:.35rem; }
-    .risk-row .acct { font-weight:750; color:var(--white); }
-    .risk-row .score { font-variant-numeric:tabular-nums; color:var(--teal); }
-    .risk-row .driver { color:rgba(255,255,255,.6); }
+    .sev-pill { display:inline-flex; align-items:center; padding:.18rem .6rem; border-radius:999px; font-size:.72rem; font-weight:500; }
+    .sev-pill.critical { color:var(--red); background:rgba(255,59,48,.10); }
+    .sev-pill.elevated { color:var(--orange); background:rgba(255,149,0,.12); }
+    .sev-pill.normal { color:var(--secondary); background:var(--fill); }
+    .risk-row { display:grid; grid-template-columns:1.1fr .9fr 1.3fr .9fr; align-items:center; gap:.5rem; padding:.6rem .1rem; border-top:1px solid var(--hairline); font-size:.85rem; }
+    .risk-row.head { color:var(--tertiary); font-size:.75rem; font-weight:500; border-top:none; padding-bottom:.3rem; }
+    .risk-row .acct { font-weight:600; color:var(--ink); }
+    .risk-row .score { font-variant-numeric:tabular-nums; color:var(--ink); }
+    .risk-row .driver { color:var(--secondary); }
 
-    /* -- risk narrative story card -- */
-    .risk-story-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.4rem; }
-    .risk-story-head .t { font-size:.75rem; font-weight:750; color:var(--white); }
-    .risk-story-head .s { font-size:.5rem; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.07em; }
+    .risk-story-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.2rem; }
+    .risk-story-head .t { font-size:.95rem; font-weight:600; color:var(--ink); }
+    .risk-story-head .s { font-size:.75rem; color:var(--tertiary); }
 
-    /* -- fact-check hero verdict card -- */
-    .verdict-hero { display:grid; grid-template-columns:auto 1fr; gap:1rem; align-items:center; padding:1rem 1.1rem; border-radius:14px; margin:.8rem 0; border:1px solid; }
-    .verdict-hero.supported { background:linear-gradient(135deg,rgba(53,208,127,.14),rgba(0,0,0,.5)); border-color:rgba(53,208,127,.35); }
-    .verdict-hero.contradicted { background:linear-gradient(135deg,rgba(255,92,108,.14),rgba(0,0,0,.5)); border-color:rgba(255,92,108,.35); }
-    .verdict-hero.partially_supported,.verdict-hero.unsupported { background:linear-gradient(135deg,rgba(245,196,81,.14),rgba(0,0,0,.5)); border-color:rgba(245,196,81,.32); }
-    .verdict-hero.unverifiable { background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(0,0,0,.5)); border-color:rgba(255,255,255,.16); }
-    .verdict-hero .icon { font-size:2.1rem; line-height:1; }
-    .verdict-hero .label { font-size:1.05rem; font-weight:850; letter-spacing:-.01em; }
-    .verdict-hero .reason { margin-top:.3rem; font-size:.72rem; color:rgba(255,255,255,.72); line-height:1.45; }
+    /* -- fact-check verdict -- */
+    .verdict-hero { display:grid; grid-template-columns:auto 1fr; gap:1rem; align-items:center; padding:1rem 1.1rem; border-radius:14px; margin:.8rem 0; background:#F5F5F7; }
+    .verdict-hero .icon { width:40px; height:40px; display:grid; place-items:center; border-radius:50%; color:#fff; font-size:1.1rem; font-weight:700; background:#8E8E93; }
+    .verdict-hero.supported .icon { background:#34C759; }
+    .verdict-hero.contradicted .icon { background:#FF3B30; }
+    .verdict-hero.partially_supported .icon,.verdict-hero.unsupported .icon { background:#FF9500; }
+    .verdict-hero .label { font-size:1.1rem; font-weight:600; letter-spacing:-.01em; color:var(--ink); }
+    .verdict-hero .reason { margin-top:.25rem; font-size:.85rem; color:var(--secondary); line-height:1.5; }
 
-    .meter { height:7px; border-radius:99px; background:rgba(255,255,255,.09); overflow:hidden; margin-top:.5rem; }
-    .meter i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--blue),var(--teal)); }
-    .meter-label { display:flex; justify-content:space-between; font-size:.52rem; color:rgba(255,255,255,.42); margin-top:.25rem; text-transform:uppercase; letter-spacing:.06em; }
+    .meter { height:6px; border-radius:99px; background:var(--fill); overflow:hidden; margin-top:.5rem; }
+    .meter i { display:block; height:100%; border-radius:99px; background:var(--blue); }
+    .meter-label { display:flex; justify-content:space-between; font-size:.75rem; color:var(--tertiary); margin-top:.35rem; }
+    .field-label { margin-top:.9rem; font-size:.75rem; font-weight:500; color:var(--secondary); }
 
     .evidence-chip-row { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }
-    .evidence-chip { font-family:monospace; font-size:.56rem; padding:.2rem .5rem; border-radius:6px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.13); color:rgba(255,255,255,.68); }
+    .evidence-chip { font-family:"SF Mono",ui-monospace,Menlo,monospace!important; font-size:.72rem; padding:.2rem .55rem; border-radius:6px; background:var(--fill); color:var(--ink); }
 
-    .history-item { display:grid; grid-template-columns:16px 1fr auto; gap:.5rem; align-items:start; padding:.45rem 0; border-top:1px solid rgba(255,255,255,.07); font-size:.6rem; }
+    .history-item { display:grid; grid-template-columns:1fr auto; gap:.75rem; align-items:start; padding:.7rem 0; border-top:1px solid var(--hairline); font-size:.82rem; }
     .history-item:first-child { border-top:none; }
-    .history-item .claim { color:rgba(255,255,255,.68); }
-    .history-item .badge { font-size:.48rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:.12rem .4rem; border-radius:5px; white-space:nowrap; }
+    .history-item .claim { color:var(--ink); }
+    .history-item .scope { color:var(--tertiary); font-size:.72rem; margin-top:.15rem; }
+    .history-item .badge { font-size:.72rem; font-weight:500; padding:.15rem .55rem; border-radius:999px; white-space:nowrap; text-transform:capitalize; }
+
+    .loader-card { min-height:72vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+    .loader-card img { width:72px; height:72px; object-fit:contain; transform:scale(1.65); }
+    .loader-card strong { margin-top:1rem; color:var(--ink); font-size:1.05rem; font-weight:600; }
+    .loader-card span { margin-top:.3rem; color:var(--tertiary); font-size:.82rem; }
+    .loader-line { width:160px; height:3px; margin-top:1.1rem; overflow:hidden; border-radius:99px; background:var(--fill); }
+    .loader-line i { display:block; width:40%; height:100%; border-radius:99px; background:var(--blue); animation:loader-scan 1.2s ease-in-out infinite; }
+    @keyframes loader-scan { from { transform:translateX(-110%); } to { transform:translateX(260%); } }
 
     @media(max-width:900px) {
-      .block-container { padding:.6rem!important; }
-      .tagline,.period-pill { display:none; }
+      .block-container { padding:0 1rem 1.5rem!important; }
+      .topbar { margin:0 -1rem; padding:0 1rem; }
+      .tagline,.period-pill,.section-sub { display:none; }
+      .section-title { font-size:1.35rem; }
       [data-testid="stHorizontalBlock"] { flex-wrap:wrap; }
       [data-testid="stHorizontalBlock"]>[data-testid="stColumn"] { min-width:calc(50% - .5rem); }
-      .st-key-agent_panel { min-height:auto; }
-      .st-key-agent_panel>div[data-testid="stVerticalBlock"] { min-height:auto; }
+      .inference-grid,.kpi-strip { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .st-key-agent_panel,.st-key-agent_panel>div[data-testid="stVerticalBlock"] { min-height:auto; }
     }
     </style>
     """,
@@ -644,8 +636,8 @@ if not DATA_PATH.exists():
 loader = st.empty()
 loader.markdown(
     f"<div class='loader-card'><img src='{image_data_uri(LOGO_PATH)}' alt='WhaleWatch loading'>"
-    "<strong>WhaleWatch is scanning your revenue ocean</strong>"
-    "<span>Aggregating accounts, identifying whales, and measuring hidden churn…</span>"
+    "<strong>Loading portfolio</strong>"
+    "<span>Aggregating accounts and measuring concentration…</span>"
     "<div class='loader-line'><i></i></div></div>",
     unsafe_allow_html=True,
 )
@@ -705,24 +697,24 @@ st.markdown(
         <div><div class="brand-name">Whale<span>Watch</span></div>
         <div class="tagline">Don't just track revenue. Track the whales driving it.</div></div>
       </div>
-      <div class="top-actions"><div class="period-pill">CFO COMMAND CENTER · {period_label.upper()}</div>
-      <div class="live-pill"><span class="pulse"></span>LIVE · {datetime.now().strftime('%I:%M %p')}</div></div>
+      <div class="top-actions"><div class="period-pill">{period_label}</div>
+      <div class="live-pill"><span class="pulse"></span>Updated {datetime.now().strftime('%-I:%M %p')}</div></div>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-tab_overview, tab_risk, tab_check = st.tabs(["📊 Overview", "🕸️ Risk Graph", "📞 Investor Call Fact-Check"])
+tab_overview, tab_risk, tab_check = st.tabs(["Overview", "Risk Graph", "Fact-Check"])
 
 with tab_overview:
     with st.container(key="apikey_panel"):
         key_col, status_col = st.columns([5, 1.4])
         with key_col:
-            st.markdown("<div class='apikey-row'><span class='apikey-label'>🔑 Anthropic API key</span></div>", unsafe_allow_html=True)
+            st.markdown("<div class='apikey-row'><span class='apikey-label'>Anthropic API key</span></div>", unsafe_allow_html=True)
             entered_key = st.text_input(
                 "Anthropic API key", type="password", label_visibility="collapsed",
                 value=st.session_state.get("anthropic_api_key", ""),
-                placeholder="sk-ant-... (optional -- leave blank to use the built-in template narrator)",
+                placeholder="sk-ant-…  Optional. Leave blank to use template explanations.",
                 key="anthropic_api_key_input",
             )
             if entered_key != st.session_state.get("anthropic_api_key", ""):
@@ -735,7 +727,7 @@ with tab_overview:
         with status_col:
             llm_on = bool(os.environ.get("ANTHROPIC_API_KEY"))
             st.markdown(
-                f"<div style='padding-top:1.15rem'><span class='llm-status {'on' if llm_on else 'off'}'>"
+                f"<div style='padding-top:1.45rem;text-align:right'><span class='llm-status {'on' if llm_on else 'off'}'>"
                 f"<span class='dot'></span>{'LLM connected' if llm_on else 'Template mode'}</span></div>",
                 unsafe_allow_html=True,
             )
@@ -743,9 +735,9 @@ with tab_overview:
     title_col, selector_col = st.columns([5, 1.35])
     with title_col:
         st.markdown(
-            "<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration</div>"
+            f"<div class='section-line'><div><div class='eyebrow'>Revenue quality & concentration · {customer_count:,} accounts</div>"
             "<div class='section-title'>Growth is good. Durable growth is better.</div></div>"
-            f"<div class='section-sub'>Portfolio view · {customer_count:,} accounts · Source: data/subscription_accounts.csv</div></div>",
+            "</div>",
             unsafe_allow_html=True,
         )
     with selector_col:
@@ -755,25 +747,25 @@ with tab_overview:
     with k1:
         st.markdown(metric_card("Total MRR", money(current_total, True), f"<b>{percentage(growth, True)}</b> vs last month", "$", "positive" if growth >= 0 else "risk"), unsafe_allow_html=True)
     with k2:
-        st.markdown(metric_card("MRR ex-whale", money(organic_current, True), f"<b>{percentage(organic_growth, True)}</b> underlying growth", "↘", "positive" if organic_growth >= 0 else "risk"), unsafe_allow_html=True)
+        st.markdown(metric_card("MRR excluding largest", money(organic_current, True), f"<b>{percentage(organic_growth, True)}</b> underlying growth", "↘", "positive" if organic_growth >= 0 else "risk"), unsafe_allow_html=True)
     with k3:
-        st.markdown(metric_card("Top 1 exposure", percentage(top_share), f"<b>{money(whale_mrr, True)}</b> from {whale}", "!", "risk" if concentration_risk else "positive"), unsafe_allow_html=True)
+        st.markdown(metric_card("Largest account share", percentage(top_share), f"<b>{money(whale_mrr, True)}</b> from {whale}", "!", "risk" if concentration_risk else "positive"), unsafe_allow_html=True)
     with k4:
         concentration_label = "High" if top_five_share >= .50 else "Diversified"
         concentration_state = "risk" if top_five_share >= .50 else "positive"
-        st.markdown(metric_card("Top 5 exposure", percentage(top_five_share), f"<b>{concentration_label}</b> portfolio dependency", "5", concentration_state), unsafe_allow_html=True)
+        st.markdown(metric_card("Top 5 share", percentage(top_five_share), f"<b>{concentration_label}</b> portfolio dependency", "5", concentration_state), unsafe_allow_html=True)
     with k5:
         st.markdown(metric_card("Gross MRR loss", money(abs(losses), True), f"<b>{churned}</b> full-account churns", "−", "risk" if losses < 0 else "positive"), unsafe_allow_html=True)
     with k6:
         hhi_label = "Concentrated" if hhi > .18 else "Diversified"
-        st.markdown(metric_card("HHI score", f"{hhi * 10_000:,.0f}", f"<b>{hhi_label}</b> revenue base", "H", "risk" if hhi > .18 else "positive"), unsafe_allow_html=True)
+        st.markdown(metric_card("HHI", f"{hhi * 10_000:,.0f}", f"<b>{hhi_label}</b> revenue base", "H", "risk" if hhi > .18 else "positive"), unsafe_allow_html=True)
 
     charts_col, agent_col = st.columns([2, 1], gap="medium")
     with charts_col:
         top_left, top_right = st.columns([1.25, 1])
         with top_left:
             with st.container(key="chart_panel"):
-                st.markdown("<div class='chart-heading'><div class='chart-title'>Revenue quality</div><div class='chart-meta'>Total vs ex-whale</div></div>", unsafe_allow_html=True)
+                st.markdown("<div class='chart-heading'><div class='chart-title'>Revenue quality</div><div class='chart-meta'>Total vs. excluding largest</div></div>", unsafe_allow_html=True)
                 st.plotly_chart(revenue_quality_chart(monthly), width="stretch", config={"displayModeBar": False})
         with top_right:
             with st.container(key="chart_panel_2"):
@@ -851,13 +843,13 @@ with tab_overview:
 
             with st.form("agent_form", clear_on_submit=True):
                 question = st.text_input("Ask the agent", placeholder="Ask what makes growth fragile…", label_visibility="collapsed")
-                submitted = st.form_submit_button("Ask Whale Agent", use_container_width=True)
+                submitted = st.form_submit_button("Ask", use_container_width=True)
             if submitted and question.strip():
                 st.session_state.agent_messages.append({"role": "user", "content": question.strip()})
                 answer = agent_answer(question, stats, engine, memory, current_period, comparison_period)
                 st.session_state.agent_messages.append({"role": "agent", "content": answer})
                 st.rerun()
-            st.caption("Live portfolio analysis, powered by the WhyLedger backend")
+            st.caption("Answers are grounded in account-level data.")
 
 
 
@@ -865,8 +857,8 @@ with tab_risk:
     st.markdown(
         "<div class='section-line'><div><div class='eyebrow'>Systemic risk graph</div>"
         "<div class='section-title'>Which accounts sit downstream of the most operational risk?</div></div>"
-        "<div class='section-sub'>Reliability incidents, support friction, and payment delays &rarr; financial "
-        "consequences &rarr; accounts. Live PageRank over a directed graph (backend/risk_graph).</div></div>",
+        "<div class='section-sub'>Reliability incidents, support friction and payment delays &rarr; financial "
+        "consequences &rarr; accounts, ranked by weighted PageRank.</div></div>",
         unsafe_allow_html=True,
     )
     st.write("")
@@ -936,12 +928,12 @@ with tab_risk:
             st.markdown("<div class='chart-heading'><div class='chart-title'>Risk amplifier ranking</div>"
                         "<div class='chart-meta'>Weighted downstream $ impact</div></div>", unsafe_allow_html=True)
             amp_fig = chart_base()
-            amp_colors = [RED, "#f5c451", TEAL]
+            amp_colors = [RED, ORANGE, BLUE]
             amp_fig.add_trace(go.Bar(
                 x=[v for _, v in amplifier_ranking], y=[n.replace("_", " ") for n, _ in amplifier_ranking],
-                orientation="h", marker=dict(color=amp_colors[:len(amplifier_ranking)]),
+                orientation="h", marker=dict(color=amp_colors[:len(amplifier_ranking)], cornerradius=4),
                 text=[money(v, True) for _, v in amplifier_ranking], textposition="outside",
-                textfont=dict(color=WHITE, size=9),
+                textfont=dict(color=INK, size=11),
                 hovertemplate="<b>%{y}</b><br>$%{x:,.0f}<extra></extra>",
             ))
             amp_fig.update_xaxes(tickprefix="$", tickformat="~s")
@@ -953,7 +945,13 @@ with tab_risk:
             st.markdown("<div class='chart-heading'><div class='chart-title'>Risk flow graph</div>"
                         "<div class='chart-meta'>Risk source &rarr; consequence &rarr; account</div></div>", unsafe_allow_html=True)
             st.plotly_chart(risk_network_chart(graph_data), width="stretch", config={"displayModeBar": False})
-            st.caption("🔴 Operational risk source &nbsp;·&nbsp; 🟠 Financial consequence &nbsp;·&nbsp; 🔵 Account")
+            st.markdown(
+                "<div class='chart-meta graph-legend'>"
+                f"<span style='color:{RED}'>●</span> Operational risk source &nbsp;&nbsp; "
+                f"<span style='color:{ORANGE}'>●</span> Financial consequence &nbsp;&nbsp; "
+                f"<span style='color:{BLUE}'>●</span> Account</div>",
+                unsafe_allow_html=True,
+            )
 
     st.write("")
     with st.container(key="chart_panel_risk_table"):
@@ -987,7 +985,7 @@ with tab_risk:
         if row["cascading_loss_paths"]:
             for path in row["cascading_loss_paths"]:
                 chips = " &rarr; ".join(f"<span class='evidence-chip'>{p}</span>" for p in path["path"])
-                st.markdown(f"<div style='margin:.35rem 0'>{chips} &nbsp; <span style='color:rgba(255,255,255,.4);font-size:.6rem'>weight {path['total_weight']:,.2f}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='margin:.35rem 0'>{chips} &nbsp; <span class='chart-meta'>weight {path['total_weight']:,.2f}</span></div>", unsafe_allow_html=True)
         else:
             st.caption("No traceable operational-risk path to this account.")
 
@@ -997,8 +995,7 @@ with tab_check:
         "<div class='section-line'><div><div class='eyebrow'>Narrative fact-check</div>"
         "<div class='section-title'>Does the story match the transactions?</div></div>"
         "<div class='section-sub'>Paste a line from an earnings call, investor update, or exec summary. "
-        "Checked against real driver data -- never the LLM's own judgment "
-        "(backend/agent_engine/narrative_check.py).</div></div>",
+        "The verdict is computed from driver data, never from the LLM's own judgment.</div></div>",
         unsafe_allow_html=True,
     )
     st.write("")
@@ -1016,8 +1013,7 @@ with tab_check:
             scope_options = ["Total Portfolio MRR"] + risk_accounts["account_id"].tolist()
             scope = st.selectbox("Check against", scope_options, key="factcheck_scope")
 
-            st.markdown("<div style='margin-top:.5rem;font-size:.6rem;color:rgba(255,255,255,.45);"
-                        "text-transform:uppercase;letter-spacing:.06em;font-weight:750'>Try one, or write your own</div>",
+            st.markdown("<div class='field-label'>Try an example, or write your own</div>",
                         unsafe_allow_html=True)
             example_claims = [
                 "Growth this month was broad-based across the customer base.",
@@ -1033,7 +1029,7 @@ with tab_check:
                         st.session_state.factcheck_claim = claim
 
             claim_text = st.text_area("Claim to check", key="factcheck_claim", height=80, label_visibility="collapsed")
-            run_check = st.button("🔎 Check this claim", type="primary", use_container_width=True)
+            run_check = st.button("Check claim", type="primary", use_container_width=True)
 
             if run_check and claim_text.strip():
                 if scope == "Total Portfolio MRR":
@@ -1053,11 +1049,11 @@ with tab_check:
             verdict = st.session_state.get("factcheck_last")
             if verdict is not None:
                 meta = {
-                    "supported": ("✅", "Supported", "supported"),
-                    "contradicted": ("🚨", "Contradicted", "contradicted"),
-                    "partially_supported": ("⚠️", "Partially supported", "partially_supported"),
-                    "unsupported": ("❌", "Unsupported", "unsupported"),
-                    "unverifiable": ("❓", "Unverifiable", "unverifiable"),
+                    "supported": ("✓", "Supported", "supported"),
+                    "contradicted": ("✕", "Contradicted", "contradicted"),
+                    "partially_supported": ("!", "Partially supported", "partially_supported"),
+                    "unsupported": ("!", "Unsupported", "unsupported"),
+                    "unverifiable": ("?", "Unverifiable", "unverifiable"),
                 }.get(verdict.verdict, ("•", verdict.verdict.title(), "unverifiable"))
                 icon, label, css_class = meta
 
@@ -1078,17 +1074,16 @@ with tab_check:
 
                 claimed = verdict.claimed_entities or verdict.matched_entities
                 st.markdown(
-                    "<div style='margin-top:.9rem;font-size:.6rem;color:rgba(255,255,255,.45);"
-                    "text-transform:uppercase;letter-spacing:.06em;font-weight:750'>Evidence</div>",
+                    "<div class='field-label'>Evidence</div>",
                     unsafe_allow_html=True,
                 )
                 chip_html = lambda items: "".join(f"<span class='evidence-chip'>{html.escape(str(i))}</span>" for i in items) or "<span class='evidence-chip'>none</span>"
                 st.markdown(
-                    f"<div style='font-size:.62rem;color:rgba(255,255,255,.5);margin-top:.4rem'>Claim named</div>"
+                    f"<div class='field-label'>Claim named</div>"
                     f"<div class='evidence-chip-row'>{chip_html(claimed)}</div>"
-                    f"<div style='font-size:.62rem;color:rgba(255,255,255,.5);margin-top:.5rem'>Actual top drivers</div>"
+                    f"<div class='field-label'>Actual top drivers</div>"
                     f"<div class='evidence-chip-row'>{chip_html(verdict.actual_top_entities)}</div>"
-                    f"<div style='font-size:.62rem;color:rgba(255,255,255,.5);margin-top:.5rem'>Transactions</div>"
+                    f"<div class='field-label'>Transactions</div>"
                     f"<div class='evidence-chip-row'>{chip_html(verdict.transaction_ids[:8])}</div>",
                     unsafe_allow_html=True,
                 )
@@ -1103,19 +1098,19 @@ with tab_check:
                 st.caption("No claims checked yet this session.")
             else:
                 badge_style = {
-                    "supported": (GREEN, "rgba(53,208,127,.12)"),
-                    "contradicted": (RED, "rgba(255,92,108,.12)"),
-                    "partially_supported": ("#f5c451", "rgba(245,196,81,.12)"),
-                    "unsupported": ("#f5c451", "rgba(245,196,81,.12)"),
-                    "unverifiable": ("rgba(255,255,255,.55)", "rgba(255,255,255,.06)"),
+                    "supported": ("#248A3D", "rgba(52,199,89,.12)"),
+                    "contradicted": ("#D70015", "rgba(255,59,48,.10)"),
+                    "partially_supported": ("#C93400", "rgba(255,149,0,.12)"),
+                    "unsupported": ("#C93400", "rgba(255,149,0,.12)"),
+                    "unverifiable": (SECONDARY, "rgba(118,118,128,.12)"),
                 }
                 for item in st.session_state.factcheck_history:
-                    color, bg = badge_style.get(item["verdict"], (WHITE, "rgba(255,255,255,.06)"))
+                    color, bg = badge_style.get(item["verdict"], (SECONDARY, "rgba(118,118,128,.12)"))
                     claim_short = html.escape(item["claim"][:70] + ("…" if len(item["claim"]) > 70 else ""))
                     st.markdown(
-                        f"<div class='history-item'><span>•</span>"
+                        f"<div class='history-item'>"
                         f"<div><div class='claim'>{claim_short}</div>"
-                        f"<div style='color:rgba(255,255,255,.35);font-size:.52rem;margin-top:.15rem'>{item['scope']}</div></div>"
+                        f"<div class='scope'>{item['scope']}</div></div>"
                         f"<span class='badge' style='color:{color};background:{bg}'>{item['verdict'].replace('_',' ')}</span></div>",
                         unsafe_allow_html=True,
                     )
