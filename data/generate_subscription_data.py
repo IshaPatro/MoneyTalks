@@ -1,6 +1,5 @@
 """Generates the real dataset MoneyTalks now runs on: a synthetic but
-realistic SaaS subscription-billing dataset matching the exact schema of
-whyledger_frontend_reference_full.csv (one row per customer account per
+realistic SaaS subscription-billing dataset (one row per customer account per
 active month, with MRR lifecycle events, product/support telemetry, and
 precomputed variance/driver/historical fields).
 
@@ -12,8 +11,9 @@ backend's real input. Run directly:
 Writes data/subscription_accounts.csv.
 
 Design notes (why the numbers look the way they do):
-- ~70 customer accounts across a 24-month window (2025-01 .. 2026-12),
-  staggered signups, SMB/Mid-Market/Enterprise mix with realistic MRR
+- 400 customer accounts across a 24-month window (2025-01 .. 2026-12): a
+  70-account core roster plus a long tail of mostly-SMB accounts, staggered
+  signups, SMB/Mid-Market/Enterprise mix with realistic MRR
   bands and churn-rate differences (SMB churns fastest, Enterprise rarely).
 - Every derived column (shares, primary/secondary driver, variance score/
   rank, segment rollups, trailing 3-month history, churn_flag, signals) is
@@ -88,6 +88,9 @@ COLUMNS = [
 
 BASE_YEAR, BASE_MONTH = 2025, 1  # global month index 1 == 2025-01
 TOTAL_MONTHS = 24
+CORE_ACCOUNTS = 70     # seeded roster carrying every demo scenario
+TOTAL_ACCOUNTS = 400   # core roster plus a long tail of smaller customers
+LONG_TAIL_SIZE_WEIGHTS = [0.85, 0.13, 0.02]  # SMB / Mid-Market / Enterprise
 
 COMPANY_SIZES = ["SMB", "Mid-Market", "Enterprise"]
 INDUSTRIES = ["Fintech", "Healthcare", "Retail", "Manufacturing", "Logistics",
@@ -216,8 +219,8 @@ def _make_accounts() -> list[Account]:
         acct.quarterly_contraction = True
         acct.contract_type = "Annual"
 
-    # Fill out the roster to ~70 accounts by cloning archetypes with new ids/names.
-    extra_needed = 70 - len(accounts)
+    # Fill out the core roster by cloning archetypes with new ids/names.
+    extra_needed = CORE_ACCOUNTS - len(accounts)
     for j in range(extra_needed):
         base = random.choice(accounts[2:])
         size = random.choices(COMPANY_SIZES, weights=[0.45, 0.35, 0.20])[0]
@@ -232,6 +235,24 @@ def _make_accounts() -> list[Account]:
             signup_month=random.randint(1, 18),
             lifetime_months=random.randint(6, TOTAL_MONTHS),
             base_mrr=round(random.uniform(lo, hi), 2),
+        ))
+
+    # Long tail of mostly-SMB customers, as in real SaaS portfolios. Drawn from
+    # a separate RNG so the core roster and its seeded scenarios are unchanged.
+    tail_rng = random.Random(7)
+    for j in range(TOTAL_ACCOUNTS - len(accounts)):
+        size = tail_rng.choices(COMPANY_SIZES, weights=LONG_TAIL_SIZE_WEIGHTS)[0]
+        lo, hi = MRR_BANDS[size]
+        accounts.append(Account(
+            account_id=f"ACC-{len(accounts) + 1:04d}",
+            name=f"{tail_rng.choice(COMPANY_NAMES[2:])} Group {j + 1}",
+            company_size=size,
+            industry=tail_rng.choice(INDUSTRIES),
+            contract_type=tail_rng.choices(CONTRACT_TYPES, weights=[0.6, 0.3, 0.1])[0],
+            discount_pct=round(tail_rng.uniform(0.0, 0.20), 4),
+            signup_month=tail_rng.randint(1, 22),
+            lifetime_months=tail_rng.randint(6, TOTAL_MONTHS),
+            base_mrr=round(tail_rng.uniform(lo, hi), 2),
         ))
     return accounts
 
