@@ -1,6 +1,6 @@
 """Tiny SQLite-backed memory of user-confirmed explanations.
 
-Schema (README section 13):
+Schema:
     id, account, entity, period, explanation, confirmed, created_at
 
 This is intentionally dumb: no embeddings, no vector search. "Similar prior

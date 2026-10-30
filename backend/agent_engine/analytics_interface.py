@@ -2,7 +2,7 @@
 
 Role 2 never touches CSVs, DuckDB, or does financial arithmetic directly.
 Instead it depends on this narrow `AnalyticsEngine` protocol, matching the
-public functions Role 1 exposes (README section 10):
+public functions Role 1 exposes:
 
     load_dataset()
     compare_periods()

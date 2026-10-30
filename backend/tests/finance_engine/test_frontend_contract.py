@@ -1,6 +1,5 @@
 """Validates VarianceCard / build_dashboard against the real subscription
-dataset -- this is the concrete frontend contract (see
-backend/contracts/FRONTEND_DATA_REFERENCE.md).
+dataset -- this is the concrete frontend contract.
 """
 
 from pathlib import Path

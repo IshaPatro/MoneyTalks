@@ -2,8 +2,7 @@
 weighted risk graph and extracts graph-theory risk metrics.
 
 Optional feature, additive to the rest of the backend -- it reads the same
-CSV schema `finance_engine` does (data/subscription_accounts.csv, matching
-whyledger_frontend_reference_full.csv) but answers a different question
+CSV schema `finance_engine` does (data/subscription_accounts.csv) but answers a different question
 than Variance/Driver/Explanation do. Where `finance_engine` answers "what
 changed and by how much," this answers "which accounts sit downstream of
 the most systemic operational risk, and through which causal path." If

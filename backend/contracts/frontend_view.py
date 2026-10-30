@@ -1,13 +1,7 @@
 """The real, demo-ready frontend contract.
 
-`whyledger_frontend_reference_full.csv` (a wide per-customer-account/month
-reference someone handed to the frontend dev) assumes a subscription-billing
-data model (MRR, seat expansions, churn, SLA credits) our general-ledger
-dataset doesn't have. See FRONTEND_DATA_REFERENCE.md for the field-by-field
-reconciliation. `VarianceCard` below is the equivalent concept built only
-from data this backend can actually produce -- one flattened, self-contained
-object per variance, combining Role 1's numbers and Role 2's narrative so
-the frontend never has to stitch together three separate API calls or
+`VarianceCard` is one flattened, self-contained object per variance,
+combining Role 1's numbers and Role 2's narrative so the frontend never has to stitch together three separate API calls or
 infer anything implicitly.
 """
 
@@ -29,8 +23,7 @@ class DriverView(BaseModel):
 
 
 class VarianceCard(BaseModel):
-    """Everything the Overview and Investigation screens (README section 15)
-    need for one variance, already assembled server-side."""
+    """Everything the Overview and Investigation screens need for one variance, already assembled server-side."""
 
     variance_id: str
     account: str

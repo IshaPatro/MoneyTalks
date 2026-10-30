@@ -1,6 +1,6 @@
 """Optional follow-up Q&A over an already-generated explanation.
 
-Deliberately last-priority (README section 10/24): only answers questions
+Deliberately minimal: only answers questions
 about data already surfaced in the Explanation/Variance/Driver objects it's
 given -- it does not re-query analytics or invent new figures.
 """

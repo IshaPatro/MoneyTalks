@@ -1,8 +1,7 @@
 """Assembles ready-to-render VarianceCards for the Overview/Investigation
-screens (README section 15) from Role 1's engine + Role 2's investigation.
+screens from Role 1's engine + Role 2's investigation.
 
-This is the one function the frontend (or a future FastAPI route, Role 3's
-`backend/app/`) should call per period comparison -- it returns fully-formed
+This is the one function a frontend should call per period comparison -- it returns fully-formed
 cards, so no implicit assembly happens client-side. Lives outside
 agent_engine/finance_engine because it depends on both.
 """

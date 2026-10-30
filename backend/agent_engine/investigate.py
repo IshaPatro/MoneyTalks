@@ -1,4 +1,4 @@
-"""Orchestrates the investigation of a single variance (README section 11).
+"""Orchestrates the investigation of a single variance.
 
     1. Receive variance
     2. Request driver breakdown
